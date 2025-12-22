@@ -1,3 +1,4 @@
+#include <iostream>
 #include "board.h"
 #include "CLI.h"
 
@@ -5,7 +6,12 @@ int main() {
     CLI::setup();
     Board board;
     board.setup_normal();
-    board.move_piece(1ULL << 6*8+3, 1ULL << 4*8+3);
+    std::string move = "e2e4";
+    board.move_piece_str(move);
     CLI::print_board(board);
+    while (true) {
+        CLI::await_move(board);
+        CLI::print_board(board);
+    }
     return 0;
 }

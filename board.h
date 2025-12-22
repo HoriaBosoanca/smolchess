@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <unordered_map>
 
 enum Color {
@@ -26,9 +27,10 @@ inline std::unordered_map<int, char> piece_map = {
 
 class Board {
     uint64_t bitboard[2][6] = {};
-    void add_piece(uint64_t pos, int color, int piece);
     public:
-    char get_piece(uint64_t pos) const;
     void setup_normal();
+    char get_piece(uint64_t pos) const;
+    void add_piece(uint64_t pos, int color, int piece);
     void move_piece(uint64_t from, uint64_t to);
+    int move_piece_str(std::string& move);
 };

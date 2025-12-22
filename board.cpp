@@ -1,20 +1,21 @@
 #include <cstdint>
+#include <iostream>
 #include "board.h"
 
 void Board::setup_normal() {
     for (int i = 0; i < 8; i++) {
         if (i == 0 || i == 7) {
-            add_piece(1ULL << (8 * i), i % 2, ROOK);
-            add_piece(1ULL << (8 * i + 1), i % 2, KNIGHT);
-            add_piece(1ULL << (8 * i + 2), i % 2, BISHOP);
-            add_piece(1ULL << (8 * i + 3), i % 2, KING);
-            add_piece(1ULL << (8 * i + 4), i % 2, QUEEN);
-            add_piece(1ULL << (8 * i + 5), i % 2, BISHOP);
-            add_piece(1ULL << (8 * i + 6), i % 2, KNIGHT);
-            add_piece(1ULL << (8 * i + 7), i % 2, ROOK);
+            add_piece(1ULL << (8 * i    ), i % 2 ? WHITE : BLACK, ROOK);
+            add_piece(1ULL << (8 * i + 1), i % 2 ? WHITE : BLACK, KNIGHT);
+            add_piece(1ULL << (8 * i + 2), i % 2 ? WHITE : BLACK, BISHOP);
+            add_piece(1ULL << (8 * i + 3), i % 2 ? WHITE : BLACK, QUEEN);
+            add_piece(1ULL << (8 * i + 4), i % 2 ? WHITE : BLACK, KING);
+            add_piece(1ULL << (8 * i + 5), i % 2 ? WHITE : BLACK, BISHOP);
+            add_piece(1ULL << (8 * i + 6), i % 2 ? WHITE : BLACK, KNIGHT);
+            add_piece(1ULL << (8 * i + 7), i % 2 ? WHITE : BLACK, ROOK);
         } else if (i == 1 || i == 6) {
             for (int j = 0; j < 8; j++) {
-                add_piece(1ULL << (8 * i + j), i % 2 ? WHITE : BLACK, PAWN);
+                add_piece(1ULL << (8 * i + j), i % 2 ? BLACK : WHITE, PAWN);
             }
         }
     }
@@ -41,4 +42,28 @@ void Board::move_piece(const uint64_t from, const uint64_t to) {
             }
         }
     }
+}
+
+int parse_move(std::string& move) {
+    move.resize(4);
+    if ('A' <= move[0] && move[0] <= 'H')
+        move[0] += ' ';
+    if ('A' <= move[2] && move[2] <= 'H')
+        move[2] += ' ';
+    if (!('a' <= move[0] && move[0] <= 'h' &&
+        '1' <= move[1] && move[1] <= '8' &&
+        'a' <= move[2] && move[2] <= 'h' &&
+        '1' <= move[3] && move[3] <= '8')) {
+        std::cout << "Invalid move notation!\n";
+        return -1;
+    }
+    return 0;
+}
+
+int Board::move_piece_str(std::string& move) {
+    if (parse_move(move) == -1) {
+        return -1;
+    }
+    move_piece(1ULL << ((move[1]-'1')*8+move[0]-'a'), 1ULL << ((move[3]-'1')*8+move[2]-'a'));
+    return 0;
 }

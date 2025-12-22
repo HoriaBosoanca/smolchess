@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <windows.h>
 #include "board.h"
 
@@ -28,7 +29,7 @@ namespace CLI {
 
     void print_board(const Board& board) {
         for (int i = 0; i < 8; i++) {
-            std::cout << 8-i << " ";
+            std::cout << i+1 << " ";
             for (int j = 0; j < 8; j++) {
                 print_piece(board.get_piece(1ULL << (8 * i + j)));
                 std::cout << " ";
@@ -40,25 +41,14 @@ namespace CLI {
             std::cout << (char)('A' + i);
             print_piece('\0');
         }
-    }
-
-    void handle_notation(char* move) {
-        if ('A' <= move[0] && move[0] <= 'H')
-            move[0] += ' ';
-        if ('A' <= move[2] && move[2] <= 'H')
-            move[2] += ' ';
-        if (!('a' <= move[0] && move[0] <= 'h' &&
-            '1' <= move[1] && move[1] <= '8' &&
-            'a' <= move[2] && move[2] <= 'h' &&
-            '1' <= move[3] && move[3] <= '8')) {
-            std::cout << "Invalid move notation!\n";
-        }
+        std::cout << "\n";
     }
 
     void await_move(Board& board) {
-        char move[4];
-        std::cin >> move;
-        handle_notation(move);
-
+        std::string move;
+        do {
+            std::cout << "Enter move:\n";
+            std::cin >> move;
+        } while (board.move_piece_str(move) == -1);
     }
 }
