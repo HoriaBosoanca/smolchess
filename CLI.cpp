@@ -49,6 +49,6 @@ namespace CLI {
         do {
             std::cout << "Enter move:\n";
             std::cin >> move;
-        } while (board.move_piece_str(move) == -1);
+        } while (!board.move_unknown_str(move));
     }
 }
