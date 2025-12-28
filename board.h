@@ -14,32 +14,38 @@ enum Piece : uint8_t {
     BISHOP = 2,
     ROOK = 3,
     QUEEN = 4,
-    KING = 5
+    KING = 5,
+    NONE = 6
+};
+struct Piece_and_Color {
+    Piece piece;
+    Color color;
 };
 
-class Move {
+struct Move {
     uint16_t move;
-    public:
     Move();
     Move(uint8_t from, uint8_t to, Piece piece);
     void print() const;
 };
 
 class Board {
+    // optimized
     uint64_t bitboard[2][6] = {};
-    Move moves[2][256];
+    Move moves[2][230];
     uint8_t move_count[2] = {0, 0};
-    public:
-    // unoptimized
-    void setup_normal();
+    void add_move(Move move, Color color);
+    void add_continuous_move(uint8_t i, uint64_t pos, Color color, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase);
+    // unoptimized (just for external interaction)
     void add_piece(uint64_t pos, Color color, int piece);
-    static bool parse_move_format(std::string& move);
-    bool move_unknown_str(std::string& move);
-    char get_piece(uint64_t pos) const;
+    bool check_move_legality(Move move, Color color) const;
+    void move_unknown(uint64_t from, uint64_t to); // use if the piece type is unknown
+    public:
+    void setup_normal();
+    bool move_unknown_str(std::string& move, Color color);
+    Piece_and_Color get_piece(uint64_t pos) const;
     void print_moves(Color color) const;
     // optimized
     uint64_t get_occupied(Color color) const;
-    void add_move(Move move, Color color);
     void generate_moves(Color color);
-    void move_unknown(uint64_t from, uint64_t to); // use if piece type is unknown
 };

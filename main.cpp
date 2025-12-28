@@ -7,14 +7,13 @@ int main() {
     CLI::setup();
     Board board;
     board.setup_normal();
-    std::string move = "e2e4";
-    board.move_unknown_str(move);
-    CLI::print_board(board);
-    board.generate_moves(WHITE);
-    board.print_moves(WHITE);
-    while (true) {
-        CLI::await_move(board);
+    Color color = WHITE;
+    do {
         CLI::print_board(board);
-    }
+        board.generate_moves(color);
+        board.print_moves(color);
+        CLI::await_move(board, color);
+        color = (Color)!color;
+    } while (true);
     return 0;
 }

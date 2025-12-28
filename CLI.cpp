@@ -31,7 +31,12 @@ namespace CLI {
         for (int i = 0; i < 8; i++) {
             std::cout << i+1 << " ";
             for (int j = 0; j < 8; j++) {
-                print_piece(board.get_piece(1ULL << (8 * i + j)));
+                auto [piece, color] = board.get_piece(1ULL << (8 * i + j));
+                if (piece == NONE) {
+                    print_piece('\0');
+                } else {
+                    print_piece(piece_map[piece] + (color == WHITE ? ' ' : '\0'));
+                }
                 std::cout << " ";
             }
             std::cout << "\n";
@@ -44,11 +49,11 @@ namespace CLI {
         std::cout << "\n";
     }
 
-    void await_move(Board& board) {
+    void await_move(Board& board, const Color color) {
         std::string move;
         do {
-            std::cout << "Enter move:\n";
-            std::cin >> move;
-        } while (!board.move_unknown_str(move));
+            std::cout << (color == WHITE ? "White" : "Black") << " to move:\n";
+            std::getline(std::cin, move);
+        } while (!board.move_unknown_str(move, color));
     }
 }
