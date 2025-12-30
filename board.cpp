@@ -16,7 +16,7 @@ void Move::print() const {
     const int from = move & mask;
     const int to = (move >> 6) & mask;
     const int piece = (move >> 12) & mask;
-    std::cout << piece_map[piece] << " " << file(from) << rank(from) << " " << file(to) << rank(to) << " " << "\n";
+    std::cout << piece_map[piece] << " " << file(from) << rank(from) << file(to) << rank(to) << " " << "\n";
 }
 
 void Board::add_move(const Move move) {
@@ -43,14 +43,14 @@ void Board::make_move(const uint64_t from, const uint64_t to, Piece piece) {
             for (int p = PAWN; p <= KING; p++) {
                 if (bitboard[c][p] & from) {
                     bitboard[c][p] = (bitboard[c][p] & ~from) | to;
-                    turn = Color(1-turn);
+                    turn = Color(!turn);
                     return;
                 }
             }
         }
     } else {
         bitboard[turn][piece] = (bitboard[turn][piece] & ~from) | to;
-        turn = Color(1-turn);
+        turn = Color(!turn);
     }
 }
 
@@ -248,19 +248,13 @@ void Board::print_board() const {
             Piece piece;
             Color color;
             get_piece(1ULL << (8 * i + j), piece, color);
-            if (piece == NONE) {
-                print_piece('\0');
-            } else {
-                print_piece(piece_map[piece] + (color ? '\0' : ' '));
-            }
-            std::cout << " ";
+            std::cout << (piece == NONE ? ' ' : char(piece_map[piece] + (color ? '\0' : ' '))) << " ";
         }
         std::cout << "\n";
     }
     std::cout << "  ";
     for (int i = 0; i < 8; i++) {
-        std::cout << (char)('A' + i);
-        print_piece('\0');
+        std::cout << (char)('A' + i) << " ";
     }
     std::cout << "\n";
 }
