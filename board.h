@@ -17,10 +17,6 @@ enum Piece : uint8_t {
     KING = 5,
     NONE = 6
 };
-struct Piece_and_Color {
-    Piece piece;
-    Color color;
-};
 
 struct Move {
     uint16_t move;
@@ -31,21 +27,27 @@ struct Move {
 
 class Board {
     // optimized
-    uint64_t bitboard[2][6] = {};
+    uint64_t bitboard[2][6];
     Move moves[2][230];
-    uint8_t move_count[2] = {0, 0};
-    void add_move(Move move, Color color);
-    void add_continuous_move(uint8_t i, uint64_t pos, Color color, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase);
-    // unoptimized (just for external interaction)
-    void add_piece(uint64_t pos, Color color, int piece);
-    bool check_move_legality(Move move, Color color) const;
-    void move_unknown(uint64_t from, uint64_t to); // use if the piece type is unknown
-    public:
-    void setup_normal();
-    bool move_unknown_str(std::string& move, Color color);
-    Piece_and_Color get_piece(uint64_t pos) const;
-    void print_moves(Color color) const;
-    // optimized
+    uint8_t move_count[2];
+    Color turn;
+    void add_move(Move move);
+    void add_continuous_move(uint8_t i, uint64_t pos, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase);
+    void make_move(uint64_t from, uint64_t to, Piece piece);
     uint64_t get_occupied(Color color) const;
-    void generate_moves(Color color);
+    public:
+    void generate_moves();
+
+    // user input / initialization
+    private:
+    void setup_normal();
+    void add_piece(uint64_t pos, Color color, int piece);
+    bool check_move_legality(Move move) const;
+    public:
+    Board();
+    Color get_turn() const;
+    bool make_move_str(std::string& move);
+    void get_piece(uint64_t pos, Piece& piece, Color& color) const;
+    void print_board() const;
+    void print_moves() const;
 };
