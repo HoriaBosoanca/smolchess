@@ -38,18 +38,20 @@ void Board::add_continuous_move(const uint8_t i, const uint64_t pos, const Piece
 }
 
 void Board::make_move(const uint64_t from, const uint64_t to, Piece piece) {
-    turn = Color(1-turn);
     if (piece == NONE) { // handle user input where the piece type is unknown
         for (int c = WHITE; c <= BLACK; c++) {
             for (int p = PAWN; p <= KING; p++) {
                 if (bitboard[c][p] & from) {
                     bitboard[c][p] = (bitboard[c][p] & ~from) | to;
+                    turn = Color(1-turn);
                     return;
                 }
             }
         }
+    } else {
+        bitboard[turn][piece] = (bitboard[turn][piece] & ~from) | to;
+        turn = Color(1-turn);
     }
-    std::cout << "hmm\n";
 }
 
 uint64_t Board::get_occupied(const Color color) const {
@@ -70,8 +72,11 @@ void Board::generate_moves() {
                     // TODO: promote
                     continue;
                 }
-                if (!(offset_pos(pos, 0, 1) & (occupied[WHITE] | occupied[BLACK]))) {
+                if (!(offset_pos(pos, 0, 1) & any_occupied)) {
                     add_move(Move(i, offset_idx(i, 0, 1), PAWN));
+                    if (!(offset_pos(pos, 0, 2) & any_occupied) && rank(i) == 2) {
+                        add_move(Move(i, offset_idx(i, 0, 2), PAWN));
+                    }
                 }
                 if ((file(i) > 'a') && (offset_pos(pos, -1, 1) & occupied[BLACK])) { // if it has a piece ahead-left
                     add_move(Move(i, offset_idx(i, -1, 1), PAWN));
@@ -86,6 +91,9 @@ void Board::generate_moves() {
                 }
                 if (!(offset_pos(pos, 0, -1) & any_occupied)) { // if it has space ahead
                     add_move(Move(i, offset_idx(i, 0, -1), PAWN));
+                    if (!(offset_pos(pos, 0, -2) & any_occupied) && rank(i) == 7) {
+                        add_move(Move(i, offset_idx(i, 0, -2), PAWN));
+                    }
                 }
                 if ((file(i) > 'a') && (offset_pos(pos, -1, -1) & occupied[WHITE])) { // if it has a piece ahead-left
                     add_move(Move(i, offset_idx(i, -1, -1), PAWN));

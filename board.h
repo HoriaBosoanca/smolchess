@@ -9,13 +9,13 @@ enum Color {
 };
 constexpr char piece_map[6] = {'P','N','B','R','Q','K'};
 enum Piece : uint8_t {
-    PAWN = 0,
-    KNIGHT = 1,
-    BISHOP = 2,
-    ROOK = 3,
-    QUEEN = 4,
-    KING = 5,
-    NONE = 6
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING,
+    NONE,
 };
 
 struct Move {
