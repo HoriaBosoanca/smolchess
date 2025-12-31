@@ -2,13 +2,13 @@
 #include <iostream>
 #include "board.h"
 
-int rank(const int8_t i) {
+int rank(const uint8_t i) {
     return i/8+1;
 }
-char file(const int8_t i) {
+char file(const uint8_t i) {
     return (char)(i%8+'a');
 }
-uint8_t offset_idx(int8_t i, const int file_cnt, const int rank_cnt) {
+uint8_t offset_idx(uint8_t i, const int file_cnt, const int rank_cnt) {
     i += file_cnt;
     i += rank_cnt*8;
     return i;
