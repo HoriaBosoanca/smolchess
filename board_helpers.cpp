@@ -57,20 +57,3 @@ bool continuous_move_condition(const uint8_t i, const int file_offset, const int
     }
     return file_condition && rank_condition;
 }
-// void print_piece(const char piece) {
-//     switch (piece) {
-//     case 'p': std::cout << "♙"; break;
-//     case 'n': std::cout << "♘"; break;
-//     case 'b': std::cout << "♗"; break;
-//     case 'r': std::cout << "♖"; break;
-//     case 'q': std::cout << "♕"; break;
-//     case 'k': std::cout << "♔"; break;
-//     case 'P': std::cout << "♟"; break;
-//     case 'N': std::cout << "♞"; break;
-//     case 'B': std::cout << "♝"; break;
-//     case 'R': std::cout << "♜"; break;
-//     case 'Q': std::cout << "♛"; break;
-//     case 'K': std::cout << "♚"; break;
-//     default: std::cout << "　"; // special Unicode space the size of a chess piece
-//     }
-// }
