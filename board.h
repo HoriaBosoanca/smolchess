@@ -34,27 +34,46 @@ class Move {
 class Board {
     // optimized
     uint64_t bitboard[2][6];
-    Move moves[2][230];
-    uint8_t move_count[2];
     Color turn;
-    void add_move(Move move);
-    Piece get_piece_by_color(uint64_t pos, Color color) const;
-    void add_continuous_move(uint8_t i, uint64_t pos, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase);
-    void make_move(Move move);
+    Piece get_piece(uint64_t pos, Color color) const;
+    void add_continuous_move(uint8_t i, uint64_t pos, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase, Move* moves, int& c) const;
     uint64_t get_occupied(Color color) const;
     public:
-    void generate_moves();
+    int generate_moves(Move* moves) const;
+    void make_move(Move move);
 
     // user input / initialization
     private:
     void setup_normal();
     void add_piece(uint64_t pos, Color color, int piece);
-    bool check_move_legality(Move move) const;
     public:
     Board();
     Color get_turn() const;
-    bool make_move_str(std::string& move_str);
-    void get_piece_and_color(uint64_t pos, Piece& piece, Color& color) const;
     void print_board() const;
     void print_moves() const;
 };
+
+inline int rank(const uint8_t i) {
+    return i/8+1;
+}
+inline char file(const uint8_t i) {
+    return (char)(i%8+'a');
+}
+inline uint8_t offset_idx(uint8_t i, const int file_cnt, const int rank_cnt) {
+    i += file_cnt;
+    i += rank_cnt*8;
+    return i;
+}
+inline uint64_t offset_pos(uint64_t pos, const int file_cnt, const int rank_cnt) {
+    if (file_cnt < 0) {
+        pos >>= (-file_cnt);
+    } else {
+        pos <<= file_cnt;
+    }
+    if (rank_cnt < 0) {
+        pos >>= (-rank_cnt*8);
+    } else {
+        pos <<= rank_cnt*8;
+    }
+    return pos;
+}
