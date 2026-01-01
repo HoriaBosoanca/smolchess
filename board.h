@@ -7,7 +7,7 @@ enum Color {
     WHITE,
     BLACK
 };
-constexpr char piece_map[6] = {'P','N','B','R','Q','K'};
+constexpr char piece_map[7] = {'P','N','B','R','Q','K', ' '};
 enum Piece : uint8_t {
     PAWN,
     KNIGHT,
@@ -18,10 +18,16 @@ enum Piece : uint8_t {
     NONE,
 };
 
-struct Move {
+class Move {
     uint16_t move;
+    uint8_t pieces;
+    public:
     Move();
-    Move(uint8_t from, uint8_t to, Piece piece);
+    Move(uint8_t from, uint8_t to, Piece from_piece, Piece to_piece);
+    uint8_t get_from() const;
+    uint8_t get_to() const;
+    uint8_t get_from_piece() const;
+    uint8_t get_to_piece() const;
     void print() const;
 };
 
@@ -32,8 +38,9 @@ class Board {
     uint8_t move_count[2];
     Color turn;
     void add_move(Move move);
+    Piece get_piece_by_color(uint64_t pos, Color color) const;
     void add_continuous_move(uint8_t i, uint64_t pos, Piece piece, const uint64_t* occupied, int file_increase, int rank_increase);
-    void make_move(uint64_t from, uint64_t to, Piece piece);
+    void make_move(Move move);
     uint64_t get_occupied(Color color) const;
     public:
     void generate_moves();
@@ -46,8 +53,8 @@ class Board {
     public:
     Board();
     Color get_turn() const;
-    bool make_move_str(std::string& move);
-    void get_piece(uint64_t pos, Piece& piece, Color& color) const;
+    bool make_move_str(std::string& move_str);
+    void get_piece_and_color(uint64_t pos, Piece& piece, Color& color) const;
     void print_board() const;
     void print_moves() const;
 };
