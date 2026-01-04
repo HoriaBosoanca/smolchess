@@ -7,3 +7,4 @@ file(GLOB SOURCES CONFIGURE_DEPENDS
         *.cpp
 )
 add_executable(smolchess ${SOURCES})
+add_link_options(-static-libstdc++ -static-libgcc)

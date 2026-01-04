@@ -28,7 +28,7 @@ uint8_t Move::to_piece() const {
 }
 
 void Move::print() const {
-    std::cout << piece_map[from_piece()] << " " << file(from()) << rank(from()) << file(to()) << rank(to()) << " " << piece_map[to_piece()] << "\n";
+    std::cout << piece_map[from_piece()] << " " << file(from()) << rank(from()) << file(to()) << rank(to()) << " " << piece_map[to_piece()] << " ";
 }
 
 Piece Board::get_piece(const uint8_t pos, const Color color) const {
@@ -47,6 +47,19 @@ void Board::make_move(const Move move) {
         bitboard[!turn][to_piece] = bitboard[!turn][to_piece] & ~to;
     }
     turn = !turn;
+}
+
+void Board::undo_move(const Move move) {
+    const uint64_t from = 1ULL << move.from(), to = 1ULL << move.to();
+    const uint8_t from_piece = move.from_piece(), to_piece = move.to_piece();
+    turn = !turn;
+    // erase your piece from 'to' square
+    bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~to);
+    if (to_piece != NONE) { // add back opponent piece (if any)
+        bitboard[!turn][to_piece] = bitboard[!turn][to_piece] | to;
+    }
+    // add back your piece to 'from' square
+    bitboard[turn][from_piece] = (bitboard[turn][from_piece] | from);
 }
 
 uint64_t Board::get_occupied(const Color color) const {
@@ -163,7 +176,7 @@ bool Board::is_in_check(const Color color) const {
     if (file(i) > 'a' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, -1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
         return true;
     }
-    if (file(i) < 'h' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, -1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
+    if (file(i) < 'h' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, 1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
         return true;
     }
     // knights
@@ -187,7 +200,7 @@ bool Board::is_in_check(const Color color) const {
     // straight pieces
     uint64_t s_sum = 0;
     uint8_t s_pos[13];
-    const int s_cnt = get_diagonal_moves(i, any_occupied, s_pos);
+    const int s_cnt = get_straight_moves(i, any_occupied, s_pos);
     for (int j = 0; j < s_cnt; j++)
         s_sum |= 1ULL << s_pos[j];
     if (s_sum & (bitboard[!color][ROOK] | bitboard[!color][QUEEN]))
@@ -258,6 +271,31 @@ int Board::generate_moves(Move* moves) const {
     return c;
 }
 
+int Board::generate_legal_moves(Move* legal_moves) {
+    int c = 0;
+    Move unfiltered_moves[230];
+    const int cnt = generate_moves(unfiltered_moves);
+    for (int i = 0; i < cnt; i++) {
+        make_move(unfiltered_moves[i]);
+        if (!is_in_check(!turn)) {
+            legal_moves[c++] = unfiltered_moves[i];
+        }
+        undo_move(unfiltered_moves[i]);
+    }
+    return c;
+}
+
+GameStatus Board::game_over() {
+    Move legal_moves[230];
+    if (generate_legal_moves(legal_moves)) {
+        return Ongoing;
+    }
+    if (!is_in_check(turn)) {
+        return Draw;
+    }
+    return turn ? WhiteWin : BlackWin;
+}
+
 // user input / initialization
 
 void Board::setup_normal() {
@@ -312,10 +350,12 @@ void Board::print_board() const {
     std::cout << "\n";
 }
 
-void Board::print_moves() const {
+void Board::print_moves() {
     Move moves[230];
-    const int move_count = generate_moves(moves);
+    const int move_count = generate_legal_moves(moves);
     for (int i = 0; i < move_count; i++) {
         moves[i].print();
+        if (i % 3 == 2) std::cout << "\n";
     }
+    std::cout << "\n";
 }

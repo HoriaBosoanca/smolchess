@@ -15,7 +15,12 @@ enum Piece : uint8_t {
     KING,
     NONE,
 };
-
+enum GameStatus : uint8_t {
+    Ongoing,
+    WhiteWin,
+    BlackWin,
+    Draw,
+};
 class Move {
     uint16_t move;
     uint8_t pieces;
@@ -36,10 +41,12 @@ class Board {
     Piece get_piece(uint8_t pos, bool color) const;
     uint64_t get_occupied(Color color) const;
     bool is_in_check(Color color) const;
-    public:
     int generate_moves(Move* moves) const;
+    void undo_move(Move move);
+    public:
+    int generate_legal_moves(Move* legal_moves);
     void make_move(Move move);
-
+    GameStatus game_over();
     // user input / initialization
     private:
     void setup_normal();
@@ -48,7 +55,7 @@ class Board {
     Board();
     Color get_turn() const;
     void print_board() const;
-    void print_moves() const;
+    void print_moves();
 };
 
 inline int rank(const uint8_t i) {
