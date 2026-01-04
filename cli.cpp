@@ -32,7 +32,7 @@ bool move_if_legal(Board& board, std::string& move_str) {
     Move moves[230];
     const int move_count = board.generate_moves(moves);
     for (int i = 0; i < move_count; i++) {
-        if (from == moves[i].get_from() && to == moves[i].get_to()) {
+        if (from == moves[i].from() && to == moves[i].to()) {
             found = true;
             my_move = moves[i];
         }
