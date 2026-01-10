@@ -22,8 +22,8 @@ uint8_t Move::to() const {
     return (move >> 6) & 0b111111;
 }
 
-uint8_t Move::move_type() const {
-    return static_cast<uint8_t>(move >> 12 & 0b1111);
+MoveType Move::move_type() const {
+    return static_cast<MoveType>(move >> 12 & 0b1111);
 }
 
 uint8_t Move::from_piece() const {
@@ -39,7 +39,8 @@ void Move::print() const {
 }
 
 void Board::make_move(const Move move) {
-    const uint8_t from = move.from(), to = move.to(), move_type = move.move_type(), from_piece = move.from_piece(), to_piece = move.to_piece();
+    const uint8_t from = move.from(), to = move.to(), from_piece = move.from_piece(), to_piece = move.to_piece();
+    const MoveType move_type = move.move_type();
     bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~(1ULL << from)) | 1ULL << to;
     if (to_piece != NONE) {
         bitboard[!turn][to_piece] &= ~(1ULL << to);
@@ -78,6 +79,26 @@ void Board::make_move(const Move move) {
         }
         case KING_CASTLING: {
             bitboard[turn][ROOK] = (bitboard[turn][ROOK] & ~(1ULL << (turn ? 63 : 7))) | 1ULL << (turn ? 61 : 5);
+            break;
+        }
+        case KNIGHT_PROMOTION: {
+            bitboard[turn][PAWN] &= ~(1ULL << to);
+            bitboard[turn][KNIGHT] |= 1ULL << to;
+            break;
+        }
+        case BISHOP_PROMOTION: {
+            bitboard[turn][PAWN] &= ~(1ULL << to);
+            bitboard[turn][BISHOP] |= 1ULL << to;
+            break;
+        }
+        case ROOK_PROMOTION: {
+            bitboard[turn][PAWN] &= ~(1ULL << to);
+            bitboard[turn][ROOK] |= 1ULL << to;
+            break;
+        }
+        case QUEEN_PROMOTION: {
+            bitboard[turn][PAWN] &= ~(1ULL << to);
+            bitboard[turn][QUEEN] |= 1ULL << to;
             break;
         }
         default: {
@@ -286,26 +307,40 @@ int Board::generate_moves(Move* moves) const {
         if (const uint64_t pos = 1ULL << i; !(any_occupied & pos)) {
         } else if (bitboard[turn][PAWN] & pos) { // pawns
             const int col_sgn = (turn ? -1 : 1), col_start_rank = (turn ? 7 : 2);
-            if (rank(i) == (turn ? 2 : 7) && !((1ULL << offset_idx(i, 0, col_sgn)) & any_occupied)) {
-                // TODO: promote
-                continue;
-            }
+            bool promotion = false;
+            if (rank(i) == (turn ? 2 : 7))
+                promotion = true;
             if (auto en_passant = get_nearby_en_passant(i, turn))
                 moves[c++] = Move(i, *en_passant, PAWN, get_piece(*en_passant, !turn), EN_PASSANT);
             if (const uint8_t new_i = offset_idx(i, 0, col_sgn); !((1ULL << new_i) & any_occupied)) {
-                moves[c++] = Move(i, new_i, PAWN);
+                if (promotion) {
+                    for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
+                } else {
+                    moves[c++] = Move(i, new_i, PAWN);
+                }
                 if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); !((1ULL << new_i2) & any_occupied) && rank(i) == col_start_rank) {
                     moves[c++] = Move(i, new_i2, PAWN);
                 }
             }
             if (file(i) > 'a') { // if it has a piece ahead-left
                 if (const uint8_t new_i = offset_idx(i, -1, col_sgn); (1ULL << new_i) & occupied[!turn]) {
-                    moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
+                    if (promotion) {
+                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
+                    } else {
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
+                    }
                 }
             }
             if (file(i) < 'h') { // if it has a piece ahead-right
                 if (const uint8_t new_i = offset_idx(i, 1, col_sgn); (1ULL << new_i) & occupied[!turn]) {
-                    moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
+                    if (promotion) {
+                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
+                    } else {
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
+                    }
                 }
             }
         } else if (bitboard[turn][KNIGHT] & pos) { // knights

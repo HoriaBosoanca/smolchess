@@ -1,5 +1,7 @@
 #include <fstream>
 #include <iostream>
+#include <unordered_map>
+
 #include "board.h"
 
 bool parse_move_format(std::string& move) {
@@ -22,17 +24,40 @@ bool parse_move_format(std::string& move) {
     return true;
 }
 
+std::unordered_map<char, MoveType> promotion_map = {
+    {'k', KNIGHT_PROMOTION},
+    {'b', BISHOP_PROMOTION},
+    {'r', ROOK_PROMOTION},
+    {'q', QUEEN_PROMOTION}
+};
 bool move_if_legal(Board& board, std::string& move_str) {
     if (!parse_move_format(move_str)) {
         return false;
     }
     std::optional<Move> my_move;
+    std::optional<MoveType> promotion_type;
     const auto from = static_cast<uint8_t>((move_str[1]-'1')*8+move_str[0]-'a'),
     to = static_cast<uint8_t>((move_str[3]-'1')*8+move_str[2]-'a');
     Move moves[MAX_MOVES];
     const int cnt = board.generate_legal_moves(moves);
     for (int i = 0; i < cnt; i++) {
         if (from == moves[i].from() && to == moves[i].to()) {
+            if (!promotion_type && moves[i].move_type() >= KNIGHT_PROMOTION) {
+                while (true) {
+                    std::cout << "Select promotion piece (ex: q)\n";
+                    std::string pt;
+                    std::getline(std::cin, pt);
+                    pt.resize(1);
+                    if (pt[0] != 'k' && pt[0] != 'b' && pt[0] != 'r' && pt[0] != 'q') {
+                        std::cout << "Invalid promotion piece!\n";
+                    } else {
+                        promotion_type = promotion_map[pt[0]];
+                        break;
+                    }
+                }
+            }
+            if (promotion_type && promotion_type != moves[i].move_type())
+                continue;
             my_move = moves[i];
         }
     }
@@ -47,9 +72,11 @@ bool move_if_legal(Board& board, std::string& move_str) {
 #define NO_FILE ""
 #define KID "assets/kid.txt"
 #define QID "assets/qid.txt"
+#define PROMOTION1 "assets/promotion1.txt"
+#define PROMOTION2 "assets/promotion2.txt"
 
 void game_loop() {
-    std::fstream in(QID);
+    std::fstream in(NO_FILE);
     Board board;
     while (board.game_over() == Ongoing) {
         board.print_board();

@@ -1,0 +1,9 @@
+a2a4
+h7h5
+a4a5
+h5h4
+a5a6
+h4h3
+a6b7
+h3g2
+b7a8

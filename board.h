@@ -41,7 +41,7 @@ class Move {
     Move(uint8_t from, uint8_t to, Piece from_piece, Piece to_piece = NONE, MoveType move_type = REGULAR);
     uint8_t from() const;
     uint8_t to() const;
-    uint8_t move_type() const;
+    MoveType move_type() const;
     uint8_t from_piece() const;
     uint8_t to_piece() const;
     void print() const;
