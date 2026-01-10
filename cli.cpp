@@ -1,5 +1,5 @@
+#include <fstream>
 #include <iostream>
-
 #include "board.h"
 
 bool parse_move_format(std::string& move) {
@@ -26,26 +26,30 @@ bool move_if_legal(Board& board, std::string& move_str) {
     if (!parse_move_format(move_str)) {
         return false;
     }
-    bool found = false;
-    Move my_move;
-    const uint8_t from = (move_str[1]-'1')*8+move_str[0]-'a', to = (move_str[3]-'1')*8+move_str[2]-'a';
-    Move moves[230];
+    std::optional<Move> my_move;
+    const auto from = static_cast<uint8_t>((move_str[1]-'1')*8+move_str[0]-'a'),
+    to = static_cast<uint8_t>((move_str[3]-'1')*8+move_str[2]-'a');
+    Move moves[MAX_MOVES];
     const int cnt = board.generate_legal_moves(moves);
     for (int i = 0; i < cnt; i++) {
         if (from == moves[i].from() && to == moves[i].to()) {
-            found = true;
             my_move = moves[i];
         }
     }
-    if (!found) {
+    if (!my_move) {
         std::cout << "Invalid move!\n";
         return false;
     }
-    board.make_move(my_move);
+    board.make_move(*my_move);
     return true;
 }
 
+#define NO_FILE ""
+#define KID "assets/kid.txt"
+#define QID "assets/qid.txt"
+
 void game_loop() {
+    std::fstream in(QID);
     Board board;
     while (board.game_over() == Ongoing) {
         board.print_board();
@@ -53,7 +57,9 @@ void game_loop() {
         std::string move_str;
         do {
             std::cout << (board.get_turn() ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");
-            std::getline(std::cin, move_str);
+            if (!std::getline(in, move_str)) {
+                std::getline(std::cin, move_str);
+            }
         } while (!move_if_legal(board, move_str));
     }
     std::cout << (board.game_over() == WhiteWin ? "White wins!\n" : "Black wins!\n");

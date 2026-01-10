@@ -2,13 +2,16 @@
 #include <iostream>
 #include "board.h"
 
+#include <bitset>
+#include <optional>
+
 // optimized
 
 Move::Move() : move(0), pieces(0) {}
 
-Move::Move(const uint8_t from, const uint8_t to, const Piece from_piece, const Piece to_piece) {
-    move = from | (to << 6); // 16 - 6x2 = 4 bits left
-    pieces = from_piece | (to_piece << 3); // 8 - 3x2 = 2 bits left
+Move::Move(const uint8_t from, const uint8_t to, const Piece from_piece, const Piece to_piece, const MoveType move_type) {
+    move = from | (to << 6) | (move_type << 12);
+    pieces = from_piece | (to_piece << 4);
 }
 
 uint8_t Move::from() const {
@@ -19,16 +22,74 @@ uint8_t Move::to() const {
     return (move >> 6) & 0b111111;
 }
 
+uint8_t Move::move_type() const {
+    return static_cast<uint8_t>(move >> 12 & 0b1111);
+}
+
 uint8_t Move::from_piece() const {
-    return pieces & 0b111;
+    return pieces & 0b1111;
 }
 
 uint8_t Move::to_piece() const {
-    return (pieces >> 3) & 0b111;
+    return (pieces >> 4) & 0b1111;
 }
 
 void Move::print() const {
     std::cout << piece_map[from_piece()] << " " << file(from()) << rank(from()) << file(to()) << rank(to()) << " " << piece_map[to_piece()] << " ";
+}
+
+void Board::make_move(const Move move) {
+    const uint8_t from = move.from(), to = move.to(), move_type = move.move_type(), from_piece = move.from_piece(), to_piece = move.to_piece();
+    bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~(1ULL << from)) | 1ULL << to;
+    if (to_piece != NONE) {
+        bitboard[!turn][to_piece] &= ~(1ULL << to);
+    }
+    // save en passant
+    clear_en_passant();
+    if (from_piece == PAWN && rank(to)-rank(from) == (turn ? -2 : 2)) {
+        add_en_passant(to, turn);
+    }
+    // remove castling rights
+    if (from_piece == KING) {
+        temp_state &= (turn ? 0b00111111 : 0b11001111);
+    }
+    if (from_piece == ROOK) {
+        temp_state &= (turn ? (from == 56 ? 0b10111111 : 0b01111111) : (from == 0 ? 0b11101111 : 0b11011111));
+    }
+    if (to_piece == ROOK) {
+        if (to == (turn ? 0 : 56)) {
+            temp_state &= (turn ? 0b11101111 : 0b10111111);
+        }
+        if (to == (turn ? 7 : 63)) {
+            temp_state &= (turn ? 0b11011111 : 0b01111111);
+        }
+    }
+    switch (move_type) {
+        case REGULAR: {
+            break;
+        }
+        case EN_PASSANT: {
+            bitboard[!turn][PAWN] &= ~(1ULL << offset_idx(to, 0, turn ? 1 : -1));
+            break;
+        }
+        case QUEEN_CASTLING: {
+            bitboard[turn][ROOK] = (bitboard[turn][ROOK] & ~(1ULL << (turn ? 56 : 0))) | 1ULL << (turn ? 59 : 3);
+            break;
+        }
+        case KING_CASTLING: {
+            bitboard[turn][ROOK] = (bitboard[turn][ROOK] & ~(1ULL << (turn ? 63 : 7))) | 1ULL << (turn ? 61 : 5);
+            break;
+        }
+        default: {
+            std::cout << "Unrecognized move type?\n";
+            exit(-1);
+        }
+    }
+    turn = !turn;
+}
+
+void Board::clear_en_passant() {
+    temp_state &= 0b11110000;
 }
 
 Piece Board::get_piece(const uint8_t pos, const Color color) const {
@@ -39,32 +100,39 @@ Piece Board::get_piece(const uint8_t pos, const Color color) const {
     return NONE;
 }
 
-void Board::make_move(const Move move) {
-    const uint64_t from = 1ULL << move.from(), to = 1ULL << move.to();
-    const uint8_t from_piece = move.from_piece(), to_piece = move.to_piece();
-    bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~from) | to;
-    if (to_piece != NONE) {
-        bitboard[!turn][to_piece] = bitboard[!turn][to_piece] & ~to;
-    }
-    turn = !turn;
-}
-
-void Board::undo_move(const Move move) {
-    const uint64_t from = 1ULL << move.from(), to = 1ULL << move.to();
-    const uint8_t from_piece = move.from_piece(), to_piece = move.to_piece();
-    turn = !turn;
-    // erase your piece from 'to' square
-    bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~to);
-    if (to_piece != NONE) { // add back opponent piece (if any)
-        bitboard[!turn][to_piece] = bitboard[!turn][to_piece] | to;
-    }
-    // add back your piece to 'from' square
-    bitboard[turn][from_piece] = (bitboard[turn][from_piece] | from);
-}
-
 uint64_t Board::get_occupied(const Color color) const {
     const uint64_t* c = bitboard[color];
     return c[PAWN] | c[KNIGHT] | c[BISHOP] | c[ROOK] | c[QUEEN] | c[KING];
+}
+
+void Board::add_en_passant(const uint8_t i, const Color color) {
+    temp_state |= static_cast<uint8_t>(i % 8 + (color ? 8 : 0));
+}
+
+std::optional<uint8_t> Board::get_nearby_en_passant(const uint8_t i, const Color color) const {
+    uint8_t en_passant = temp_state & 0b00001111;
+    en_passant = static_cast<uint8_t>(en_passant - color ? 0 : 8);
+    if (i % 8 + 1 == en_passant) {
+        return offset_idx(i, 1, color ? -1 : 1);
+    }
+    if (i % 8 - 1 == en_passant) {
+        return offset_idx(i, -1, color ? -1 : 1);
+    }
+    return std::nullopt;
+}
+
+std::optional<uint8_t> Board::get_castle_move(const Color color, const bool queen_side) const {
+    if (!(temp_state & 0b11110000 & ((1 << (queen_side ? 4 : 5)) << (color ? 2 : 0)))) { // verify castling rights
+        return std::nullopt;
+    }
+    const uint64_t occupied = get_occupied(color) | get_occupied(!color);
+    if (queen_side && !(occupied & (1ULL<<(color?57:1) | 1ULL<<(color?58:2) | 1ULL<<(color?59:3)))) {
+        return color?58:2;
+    }
+    if (!queen_side && !(occupied & (1ULL<<(color?61:5) | 1ULL<<(color?62:6)))) {
+        return color?62:6;
+    }
+    return std::nullopt;
 }
 
 inline int get_knight_moves(const uint8_t i, uint8_t* indices) {
@@ -152,7 +220,7 @@ inline void add_continuous_moves(const uint8_t i, const uint64_t any_occupied, c
     }
 }
 
-inline int get_diagonal_moves(const int i, const uint64_t any_occupied, uint8_t* indices) {
+inline int get_diagonal_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
     int c = 0;
     add_continuous_moves(i, any_occupied, 1, 1, indices, c);
     add_continuous_moves(i, any_occupied, -1, 1, indices, c);
@@ -161,7 +229,7 @@ inline int get_diagonal_moves(const int i, const uint64_t any_occupied, uint8_t*
     return c;
 }
 
-inline int get_straight_moves(const int i, const uint64_t any_occupied, uint8_t* indices) {
+inline int get_straight_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
     int c = 0;
     add_continuous_moves(i, any_occupied, 1, 0, indices, c);
     add_continuous_moves(i, any_occupied, 0, 1, indices, c);
@@ -172,7 +240,7 @@ inline int get_straight_moves(const int i, const uint64_t any_occupied, uint8_t*
 
 bool Board::is_in_check(const Color color) const {
     // pawns
-    const uint8_t i = std::countr_zero(bitboard[color][KING]);
+    const auto i = static_cast<uint8_t>(std::countr_zero(bitboard[color][KING]));
     if (file(i) > 'a' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, -1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
         return true;
     }
@@ -216,17 +284,18 @@ int Board::generate_moves(Move* moves) const {
 
     for (uint8_t i = 0; i < 64; i++) {
         if (const uint64_t pos = 1ULL << i; !(any_occupied & pos)) {
-            continue;
         } else if (bitboard[turn][PAWN] & pos) { // pawns
             const int col_sgn = (turn ? -1 : 1), col_start_rank = (turn ? 7 : 2);
             if (rank(i) == (turn ? 2 : 7) && !((1ULL << offset_idx(i, 0, col_sgn)) & any_occupied)) {
                 // TODO: promote
                 continue;
             }
+            if (auto en_passant = get_nearby_en_passant(i, turn))
+                moves[c++] = Move(i, *en_passant, PAWN, get_piece(*en_passant, !turn), EN_PASSANT);
             if (const uint8_t new_i = offset_idx(i, 0, col_sgn); !((1ULL << new_i) & any_occupied)) {
-                moves[c++] = Move(i, new_i, PAWN, NONE);
+                moves[c++] = Move(i, new_i, PAWN);
                 if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); !((1ULL << new_i2) & any_occupied) && rank(i) == col_start_rank) {
-                    moves[c++] = Move(i, new_i2, PAWN, NONE);
+                    moves[c++] = Move(i, new_i2, PAWN);
                 }
             }
             if (file(i) > 'a') { // if it has a piece ahead-left
@@ -251,6 +320,10 @@ int Board::generate_moves(Move* moves) const {
             for (int j = 0; j < cnt; j++)
                 if (!(occupied[turn] & (1ULL << k_moves[j])))
                     moves[c++] = Move(i, k_moves[j], KING, get_piece(k_moves[j], !turn));
+            if (auto to = get_castle_move(turn, true))
+                moves[c++] = Move(i, *to, KING, NONE, QUEEN_CASTLING);
+            if (auto to = get_castle_move(turn, false))
+                moves[c++] = Move(i, *to, KING, NONE, KING_CASTLING);
         } else {
             if (const Piece diagonal_piece = ((bitboard[turn][BISHOP] & pos) ? BISHOP : QUEEN); bitboard[turn][diagonal_piece] & pos) { // bishops or queens
                 uint8_t d_moves[13];
@@ -273,20 +346,21 @@ int Board::generate_moves(Move* moves) const {
 
 int Board::generate_legal_moves(Move* legal_moves) {
     int c = 0;
-    Move unfiltered_moves[230];
+    Move unfiltered_moves[MAX_MOVES];
     const int cnt = generate_moves(unfiltered_moves);
     for (int i = 0; i < cnt; i++) {
+        const Board prev = *this;
         make_move(unfiltered_moves[i]);
         if (!is_in_check(!turn)) {
             legal_moves[c++] = unfiltered_moves[i];
         }
-        undo_move(unfiltered_moves[i]);
+        *this = prev;
     }
     return c;
 }
 
 GameStatus Board::game_over() {
-    Move legal_moves[230];
+    Move legal_moves[MAX_MOVES];
     if (generate_legal_moves(legal_moves)) {
         return Ongoing;
     }
@@ -321,7 +395,7 @@ void Board::add_piece(const uint64_t pos, const Color color, const int piece) {
     bitboard[color][piece] |= pos;
 }
 
-Board::Board() : bitboard{}, turn(WHITE) {
+Board::Board() : bitboard{}, temp_state(0b11110000), turn(WHITE) {
     setup_normal();
 }
 
@@ -334,10 +408,10 @@ void Board::print_board() const {
         std::cout << i+1 << " ";
         for (int j = 0; j < 8; j++) {
             Color color = WHITE;
-            Piece piece = get_piece(8 * i + j, color);
+            Piece piece = get_piece(static_cast<uint8_t>(8 * i + j), color);
             if (piece == NONE) {
                 color = BLACK;
-                piece = get_piece(8 * i + j, color);
+                piece = get_piece(static_cast<uint8_t>(8 * i + j), color);
             }
             std::cout << (piece == NONE ? ' ' : static_cast<char>(piece_map[piece] + (color ? '\0' : ' '))) << " ";
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #define Color bool
 #define WHITE false
@@ -21,14 +22,26 @@ enum GameStatus : uint8_t {
     BlackWin,
     Draw,
 };
+#define MAX_MOVES 230
+enum MoveType : uint8_t {
+    REGULAR,
+    EN_PASSANT,
+    QUEEN_CASTLING,
+    KING_CASTLING,
+    KNIGHT_PROMOTION,
+    BISHOP_PROMOTION,
+    ROOK_PROMOTION,
+    QUEEN_PROMOTION,
+};
 class Move {
     uint16_t move;
     uint8_t pieces;
     public:
     Move();
-    Move(uint8_t from, uint8_t to, Piece from_piece, Piece to_piece);
+    Move(uint8_t from, uint8_t to, Piece from_piece, Piece to_piece = NONE, MoveType move_type = REGULAR);
     uint8_t from() const;
     uint8_t to() const;
+    uint8_t move_type() const;
     uint8_t from_piece() const;
     uint8_t to_piece() const;
     void print() const;
@@ -37,12 +50,17 @@ class Move {
 class Board {
     // optimized
     uint64_t bitboard[2][6];
+    // 0..15 (4 bits) for en passant (0..7 white, 8..15 black) + castling rights (4 bits) (bits 5/6 for q/k side white, 7/8 for q/k side black)
+    uint8_t temp_state;
     Color turn;
+    void clear_en_passant();
     Piece get_piece(uint8_t pos, bool color) const;
     uint64_t get_occupied(Color color) const;
+    void add_en_passant(uint8_t i, Color color);
+    std::optional<uint8_t> get_nearby_en_passant(uint8_t i, Color color) const;
+    std::optional<uint8_t> get_castle_move(Color color, bool queen_side) const;
     bool is_in_check(Color color) const;
     int generate_moves(Move* moves) const;
-    void undo_move(Move move);
     public:
     int generate_legal_moves(Move* legal_moves);
     void make_move(Move move);
@@ -50,7 +68,7 @@ class Board {
     // user input / initialization
     private:
     void setup_normal();
-    void add_piece(uint64_t pos, bool color, int piece);
+    void add_piece(uint64_t pos, Color color, int piece);
     public:
     Board();
     Color get_turn() const;
@@ -65,7 +83,7 @@ inline char file(const uint8_t i) {
     return static_cast<char>(i % 8 + 'a');
 }
 inline uint8_t offset_idx(uint8_t i, const int file_cnt, const int rank_cnt) {
-    i += file_cnt;
-    i += rank_cnt*8;
+    i += static_cast<uint8_t>(file_cnt);
+    i += static_cast<uint8_t>(rank_cnt * 8);
     return i;
 }
