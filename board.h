@@ -6,7 +6,11 @@
 #define Color bool
 #define WHITE false
 #define BLACK true
-constexpr char piece_map[7] = {'P','N','B','R','Q','K', ' '};
+#define PIECE_COUNT 6
+#define BOARD_SIZE 64
+#define COLOR_COUNT 2
+#define MAX_MOVES 230
+constexpr char piece_map[PIECE_COUNT+1] = {'P','N','B','R','Q','K', ' '};
 enum Piece : uint8_t {
     PAWN,
     KNIGHT,
@@ -22,7 +26,6 @@ enum GameStatus : uint8_t {
     BlackWin,
     Draw,
 };
-#define MAX_MOVES 230
 enum MoveType : uint8_t {
     REGULAR,
     EN_PASSANT,
@@ -49,7 +52,7 @@ class Move {
 
 class Board {
     // optimized
-    uint64_t bitboard[2][6];
+    uint64_t bitboard[COLOR_COUNT][PIECE_COUNT];
     // 0..15 (4 bits) for en passant (0..7 white, 8..15 black) + castling rights (4 bits) (bits 5/6 for q/k side white, 7/8 for q/k side black)
     uint8_t temp_state;
     Color turn;
@@ -65,6 +68,7 @@ class Board {
     int generate_legal_moves(Move* legal_moves);
     void make_move(Move move);
     GameStatus game_over();
+    int eval(Color color) const;
     // user input / initialization
     private:
     void setup_normal();
@@ -74,6 +78,7 @@ class Board {
     Color get_turn() const;
     void print_board() const;
     void print_moves();
+    void print_advantage() const;
 };
 
 inline int rank(const uint8_t i) {

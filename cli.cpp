@@ -81,6 +81,7 @@ void game_loop() {
     while (board.game_over() == Ongoing) {
         board.print_board();
         board.print_moves();
+        board.print_advantage();
         std::string move_str;
         do {
             std::cout << (board.get_turn() ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");

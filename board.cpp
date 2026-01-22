@@ -468,3 +468,10 @@ void Board::print_moves() {
     }
     std::cout << "\n";
 }
+
+void Board::print_advantage() const {
+    std::cout << "Evaluation: " << eval(turn) << "\n";
+    std::cout << "!Evaluation " << eval(!turn) << "\n";
+    std::cout << (turn ? "Black" : "White") << " has an advantage of "
+    << (static_cast<double>(eval(turn) - eval(!turn))/100.0) << "\n";
+}
