@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
-
 #include "board.h"
+#include "minimax.h"
 
 bool parse_move_format(std::string& move) {
     if (move.size() < 4) {
@@ -69,6 +69,7 @@ bool move_if_legal(Board& board, std::string& move_str) {
     return true;
 }
 
+#define BOT_TURN BLACK
 #define NO_FILE ""
 #define KID "assets/kid.txt"
 #define QID "assets/qid.txt"
@@ -76,19 +77,34 @@ bool move_if_legal(Board& board, std::string& move_str) {
 #define PROMOTION2 "assets/promotion2.txt"
 
 void game_loop() {
-    std::fstream in(NO_FILE);
+    std::ifstream in(KID);
     Board board;
     while (board.game_over() == Ongoing) {
-        board.print_board();
-        board.print_moves();
-        board.print_advantage();
-        std::string move_str;
-        do {
-            std::cout << (board.get_turn() ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");
-            if (!std::getline(in, move_str)) {
-                std::getline(std::cin, move_str);
+        std::string line;
+        std::optional<std::string> move_str;
+        if (std::getline(in, line))
+            move_str = line;
+        else
+            move_str = std::nullopt;
+        if (board.get_turn() != BOT_TURN || move_str) {
+            board.print_board();
+            board.print_moves();
+            std::cout << "White has an advantage of " << (static_cast<double>(board.eval())/100.0) << "\n";
+            do {
+                std::cout << (!BOT_TURN ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");
+                if (!move_str) {
+                    std::getline(std::cin, line);
+                    move_str = line;
+                }
+            } while (!move_if_legal(board, *move_str));
+        } else {
+            if (std::optional<Move> best_move = search(board, 3)) {
+                board.make_move(*best_move);
+            } else {
+                std::cout << "Bot found no move!\n";
+                exit(-1);
             }
-        } while (!move_if_legal(board, move_str));
+        }
     }
     std::cout << (board.game_over() == WhiteWin ? "White wins!\n" : "Black wins!\n");
 }

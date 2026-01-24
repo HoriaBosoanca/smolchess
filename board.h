@@ -68,7 +68,7 @@ class Board {
     int generate_legal_moves(Move* legal_moves);
     void make_move(Move move);
     GameStatus game_over();
-    int eval(Color color) const;
+    int eval() const;
     // user input / initialization
     private:
     void setup_normal();
@@ -78,7 +78,6 @@ class Board {
     Color get_turn() const;
     void print_board() const;
     void print_moves();
-    void print_advantage() const;
 };
 
 inline int rank(const uint8_t i) {

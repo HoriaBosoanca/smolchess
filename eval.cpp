@@ -75,13 +75,20 @@ inline int mirror(const int pos) {
     return (8-rank)*8+file;
 }
 
-int Board::eval(const Color color) const {
-    int sum = 0;
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        if (const int piece = get_piece(i, color); piece != NONE) {
-            sum += piece_value[piece];
-            sum += piece_square_table[piece][(color ? i : mirror(i))];
+int Board::eval() const {
+    int white_sum = 0;
+    for (uint8_t i = 0; i < BOARD_SIZE; i++) {
+        if (const int piece = get_piece(i, WHITE); piece != NONE) {
+            white_sum += piece_value[piece];
+            white_sum += piece_square_table[piece][mirror(i)];
         }
     }
-    return sum;
+    int black_sum = 0;
+    for (uint8_t i = 0; i < BOARD_SIZE; i++) {
+        if (const int piece = get_piece(i, BLACK); piece != NONE) {
+            black_sum += piece_value[piece];
+            black_sum += piece_square_table[piece][i];
+        }
+    }
+    return white_sum - black_sum;
 }
