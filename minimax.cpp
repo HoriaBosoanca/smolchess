@@ -18,16 +18,21 @@ int minimax(Board& board, const int depth, int alpha, int beta) {
         board_copy.make_move(moves[i]);
 
         const int val = minimax(board_copy, depth-1, alpha, beta);
-        if (TURN) {
-            best = std::min(best, val);
+        if (TURN == BLACK) {
+            if (val < best) {
+                best = val;
+                if (depth == root_depth)
+                    best_move = moves[i];
+            }
             beta = std::min(beta, best);
         } else {
-            best = std::max(best, val);
+            if (val > best) {
+                best = val;
+                if (depth == root_depth)
+                    best_move = moves[i];
+            }
             alpha = std::max(alpha, best);
         }
-
-        if (depth == root_depth && val == best)
-            best_move = moves[i];
 
         if (beta <= alpha)
             break;
