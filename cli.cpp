@@ -71,11 +71,11 @@ bool move_if_legal(Board& board, std::string& move_str) {
 
 #define BOT_TURN BLACK
 #define NO_FILE ""
-#define K_CASTLE "assets/k_castle.txt"
-#define Q_CASTLE "assets/q_castle.txt"
-#define PROMOTION1 "assets/promotion1.txt"
-#define PROMOTION2 "assets/promotion2.txt"
-#define KID "assets/kid.txt"
+#define K_CASTLE "assets/tests/k_castle.txt"
+#define Q_CASTLE "assets/tests/q_castle.txt"
+#define PROMOTION1 "assets/tests/promotion1.txt"
+#define PROMOTION2 "assets/tests/promotion2.txt"
+#define KID "assets/openings/kid.txt"
 
 void game_loop() {
     std::ifstream in(KID);
@@ -95,7 +95,7 @@ void game_loop() {
                 }
             } while (!move_if_legal(board, file_move ? *file_move : cin_move));
         } else {
-            if (int score = 0; std::optional<Move> best_move = search(board, 3, score)) {
+            if (int score = 0; std::optional<Move> best_move = search(board, 4, score)) {
                 board.make_move(*best_move);
                 std::cout << "Game has an eval of " << (static_cast<double>(score)/100.0) << " for white\n";
             } else {
