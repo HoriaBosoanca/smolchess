@@ -75,7 +75,7 @@ class Board {
     void add_piece(uint64_t pos, Color color, int piece);
     public:
     Board();
-    Color get_turn() const;
+    Color get_turn() const { return turn; }
     void print_board() const;
     void print_moves();
 };

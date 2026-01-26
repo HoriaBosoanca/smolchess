@@ -71,35 +71,33 @@ bool move_if_legal(Board& board, std::string& move_str) {
 
 #define BOT_TURN BLACK
 #define NO_FILE ""
-#define KID "assets/kid.txt"
-#define QID "assets/qid.txt"
+#define K_CASTLE "assets/k_castle.txt"
+#define Q_CASTLE "assets/q_castle.txt"
 #define PROMOTION1 "assets/promotion1.txt"
 #define PROMOTION2 "assets/promotion2.txt"
+#define KID "assets/kid.txt"
 
 void game_loop() {
     std::ifstream in(KID);
     Board board;
     while (board.game_over() == Ongoing) {
-        std::string line;
-        std::optional<std::string> move_str;
-        if (std::getline(in, line))
-            move_str = line;
-        else
-            move_str = std::nullopt;
-        if (board.get_turn() != BOT_TURN || move_str) {
+        std::optional<std::string> file_move = "";
+        if (!std::getline(in, *file_move))
+            file_move = std::nullopt;
+        if (board.get_turn() != BOT_TURN || file_move) {
             board.print_board();
             board.print_moves();
-            std::cout << "White has an advantage of " << (static_cast<double>(board.eval())/100.0) << "\n";
+            std::string cin_move;
             do {
-                std::cout << (!BOT_TURN ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");
-                if (!move_str) {
-                    std::getline(std::cin, line);
-                    move_str = line;
+                if (!file_move) {
+                    std::cout << (!BOT_TURN ? "Black to move (ex: e7e5)\n" : "White to move (ex: e2e4)\n");
+                    std::getline(std::cin, cin_move);
                 }
-            } while (!move_if_legal(board, *move_str));
+            } while (!move_if_legal(board, file_move ? *file_move : cin_move));
         } else {
-            if (std::optional<Move> best_move = search(board, 3)) {
+            if (int score = 0; std::optional<Move> best_move = search(board, 3, score)) {
                 board.make_move(*best_move);
+                std::cout << "Game has an eval of " << (static_cast<double>(score)/100.0) << " for white\n";
             } else {
                 std::cout << "Bot found no move!\n";
                 exit(-1);

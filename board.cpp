@@ -434,12 +434,8 @@ Board::Board() : bitboard{}, temp_state(0b11110000), turn(WHITE) {
     setup_normal();
 }
 
-Color Board::get_turn() const {
-    return turn;
-}
-
 void Board::print_board() const {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 7; i >= 0; i--) {
         std::cout << i+1 << " ";
         for (int j = 0; j < 8; j++) {
             Color color = WHITE;
@@ -462,9 +458,12 @@ void Board::print_board() const {
 void Board::print_moves() {
     Move moves[230];
     const int move_count = generate_legal_moves(moves);
+    std::cout << "Legal moves:\n";
     for (int i = 0; i < move_count; i++) {
         moves[i].print();
         if (i % 3 == 2) std::cout << "\n";
     }
-    std::cout << "\n";
+    if (move_count % 3 != 0) {
+        std::cout << "\n";
+    }
 }

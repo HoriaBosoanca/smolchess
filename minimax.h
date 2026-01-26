@@ -1,4 +1,4 @@
 #pragma once
 
-std::optional<Move> search(const Board& board, int depth);
-int minimax(Board board, int depth);
+std::optional<Move> search(Board& board, int depth, int& eval);
+int minimax(Board& board, int depth);
