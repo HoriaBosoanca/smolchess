@@ -7,7 +7,7 @@ file(GLOB SOURCES CONFIGURE_DEPENDS
         *.cpp
 )
 add_executable(smolchess ${SOURCES})
-add_link_options(-static-libstdc++ -static-libgcc)
+set(CMAKE_CXX_FLAGS_RELEASE "-static")
 if (MINGW)
     target_compile_options(smolchess PRIVATE
             -Wall
