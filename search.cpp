@@ -1,7 +1,8 @@
-#include <limits.h>
+#include <climits>
 #include <algorithm>
+#include <iostream>
 #include "board.h"
-#include "minimax.h"
+#include "search.h"
 
 std::optional<Move> best_move;
 int root_depth;
@@ -40,9 +41,12 @@ int minimax(Board& board, const int depth, int alpha, int beta) {
     return best;
 }
 
-std::optional<Move> search(Board& board, const int depth, int& eval) {
-    best_move = std::nullopt;
+Move search(Board& board, const int depth, int& eval) {
     root_depth = depth;
     eval = minimax(board, depth, INT_MIN, INT_MAX);
-    return best_move;
+    if (!best_move) {
+        std::cout << "Search failed!\n";
+        exit(-1);
+    }
+    return *best_move;
 }

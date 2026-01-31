@@ -38,6 +38,15 @@ void Move::print() const {
     std::cout << piece_map[from_piece()] << " " << file(from()) << rank(from()) << file(to()) << rank(to()) << " " << piece_map[to_piece()] << " ";
 }
 
+std::string Move::get_string() const {
+    std::string s;
+    s += file(from());
+    s += static_cast<char>('0'+rank(from()));
+    s += file(to());
+    s += static_cast<char>('0'+rank(to()));
+    return s;
+}
+
 void Board::make_move(const Move move) {
     const uint8_t from = move.from(), to = move.to(), from_piece = move.from_piece(), to_piece = move.to_piece();
     const MoveType move_type = move.move_type();
@@ -434,6 +443,10 @@ Board::Board() : bitboard{}, temp_state(0b11110000), turn(WHITE) {
     setup_normal();
 }
 
+Board::Board(const std::optional<std::string>& fen) : bitboard{}, temp_state(0b11110000), turn(WHITE) {
+    std::cout << "Not yet implemented!\n";
+}
+
 void Board::print_board() const {
     for (int i = 7; i >= 0; i--) {
         std::cout << i+1 << " ";
@@ -456,7 +469,7 @@ void Board::print_board() const {
 }
 
 void Board::print_moves() {
-    Move moves[230];
+    Move moves[MAX_MOVES];
     const int move_count = generate_legal_moves(moves);
     std::cout << "Legal moves:\n";
     for (int i = 0; i < move_count; i++) {

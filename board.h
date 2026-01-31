@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 
 #define Color bool
 #define WHITE false
@@ -48,6 +49,7 @@ class Move {
     uint8_t from_piece() const;
     uint8_t to_piece() const;
     void print() const;
+    std::string get_string() const;
 };
 
 class Board {
@@ -57,25 +59,26 @@ class Board {
     uint8_t temp_state;
     Color turn;
     void clear_en_passant();
-    Piece get_piece(uint8_t pos, bool color) const;
-    uint64_t get_occupied(Color color) const;
+    [[nodiscard]] Piece get_piece(uint8_t pos, bool color) const;
+    [[nodiscard]] uint64_t get_occupied(Color color) const;
     void add_en_passant(uint8_t i, Color color);
-    std::optional<uint8_t> get_nearby_en_passant(uint8_t i, Color color) const;
-    std::optional<uint8_t> get_castle_move(Color color, bool queen_side) const;
-    bool is_in_check(Color color) const;
+    [[nodiscard]] std::optional<uint8_t> get_nearby_en_passant(uint8_t i, Color color) const;
+    [[nodiscard]] std::optional<uint8_t> get_castle_move(Color color, bool queen_side) const;
+    [[nodiscard]] bool is_in_check(Color color) const;
     int generate_moves(Move* moves) const;
     public:
     int generate_legal_moves(Move* legal_moves);
     void make_move(Move move);
     GameStatus game_over();
-    int eval() const;
+    [[nodiscard]] int eval() const;
     // user input / initialization
     private:
     void setup_normal();
     void add_piece(uint64_t pos, Color color, int piece);
     public:
     Board();
-    Color get_turn() const { return turn; }
+    explicit Board(const std::optional<std::string>& fen);
+    [[nodiscard]] Color get_turn() const { return turn; }
     void print_board() const;
     void print_moves();
 };

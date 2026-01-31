@@ -1,6 +1,6 @@
-#include "cli.h"
+#include "engine.h"
 
 int main() {
-    game_loop();
+    Engine::loop();
     return 0;
 }

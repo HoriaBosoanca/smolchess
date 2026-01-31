@@ -1,3 +1,3 @@
 #pragma once
 
-void game_loop();
+void cli_loop();

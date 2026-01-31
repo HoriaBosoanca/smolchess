@@ -2,7 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 #include "board.h"
-#include "minimax.h"
+#include "search.h"
 
 bool parse_move_format(std::string& move) {
     if (move.size() < 4) {
@@ -77,7 +77,7 @@ bool move_if_legal(Board& board, std::string& move_str) {
 #define PROMOTION2 "assets/tests/promotion2.txt"
 #define KID "assets/openings/kid.txt"
 
-void game_loop() {
+void cli_loop() {
     std::ifstream in(KID);
     Board board;
     while (board.game_over() == Ongoing) {
@@ -95,13 +95,10 @@ void game_loop() {
                 }
             } while (!move_if_legal(board, file_move ? *file_move : cin_move));
         } else {
-            if (int score = 0; std::optional<Move> best_move = search(board, 4, score)) {
-                board.make_move(*best_move);
-                std::cout << "Game has an eval of " << (static_cast<double>(score)/100.0) << " for white\n";
-            } else {
-                std::cout << "Bot found no move!\n";
-                exit(-1);
-            }
+            int score = 0;
+            const Move best_move = search(board, 4, score);
+            board.make_move(best_move);
+            std::cout << "Game has an eval of " << (static_cast<double>(score)/100.0) << " for white\n";
         }
     }
     std::cout << (board.game_over() == WhiteWin ? "White wins!\n" : "Black wins!\n");
