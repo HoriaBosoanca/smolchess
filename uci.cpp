@@ -32,7 +32,8 @@ void uci_loop() {
         } else if (token == "uci") {
             std::cout << "id name Smolchess\n" << "id author Horia B\n" << "uciok\n";
         } else if (token == "ucinewgame") {
-            // nothing here for now
+        } else if (token == "isready") {
+            std::cout << "readyok\n";
         } else if (token == "position") {
             iss >> token;
             if (token == "startpos") {
@@ -59,7 +60,7 @@ void uci_loop() {
                 moves.push_back(*move);
             }
         } else if (token == "go") {
-            // TODO: wtime btime winc binc
+            // wtime btime winc binc to be implemented
             Move best_move = Engine::search(fen, moves);
             std::cout << "bestmove " << best_move.get_string() << "\n";
         } else {
