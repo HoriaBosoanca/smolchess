@@ -44,6 +44,15 @@ std::string Move::get_string() const {
     s += static_cast<char>('0'+rank(from()));
     s += file(to());
     s += static_cast<char>('0'+rank(to()));
+    if (const MoveType mt = move_type(); mt == QUEEN_PROMOTION) {
+        s += 'q';
+    } else if (mt == ROOK_PROMOTION) {
+        s += 'r';
+    } else if (mt == BISHOP_PROMOTION) {
+        s += 'b';
+    } else if (mt == KNIGHT_PROMOTION) {
+        s += 'n';
+    }
     return s;
 }
 
@@ -303,6 +312,15 @@ bool Board::is_in_check(const Color color) const {
         s_sum |= 1ULL << s_pos[j];
     if (s_sum & (bitboard[!color][ROOK] | bitboard[!color][QUEEN]))
         return true;
+    // kings
+    uint64_t k_sum = 0;
+    uint8_t k_moves[8];
+    const int k_cnt = get_king_moves(i, k_moves);
+    for (int j = 0; j < k_cnt; j++)
+        k_sum |= 1ULL << k_moves[j];
+    if (k_sum & bitboard[!color][KING])
+        return true;
+
     return false;
 }
 

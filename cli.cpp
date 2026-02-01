@@ -72,13 +72,14 @@ bool move_if_legal(Board& board, std::string& move_str) {
 #define BOT_TURN BLACK
 #define NO_FILE ""
 #define K_CASTLE "assets/tests/k_castle.txt"
+#define KK_CHECK "assets/tests/kk_check.txt"
 #define Q_CASTLE "assets/tests/q_castle.txt"
 #define PROMOTION1 "assets/tests/promotion1.txt"
 #define PROMOTION2 "assets/tests/promotion2.txt"
 #define KID "assets/openings/kid.txt"
 
 void cli_loop() {
-    std::ifstream in(KID);
+    std::ifstream in(NO_FILE);
     Board board;
     while (board.game_over() == Ongoing) {
         std::optional<std::string> file_move = "";
