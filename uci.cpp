@@ -15,7 +15,17 @@ std::optional<Move> parse_move(const std::string& move) {
         return std::nullopt;
     const uint8_t from = static_cast<uint8_t>((move[1]-'1')*8+move[0]-'a'),
                   to   = static_cast<uint8_t>((move[3]-'1')*8+move[2]-'a');
-    return std::optional(Move(from, to, NONE, NONE, REGULAR));
+    MoveType mt = REGULAR;
+    if (move.size() == 5) {
+        switch (move[4]) {
+            case 'q': mt = QUEEN_PROMOTION; break;
+            case 'r': mt = ROOK_PROMOTION; break;
+            case 'b': mt = BISHOP_PROMOTION; break;
+            case 'n': mt = KNIGHT_PROMOTION; break;
+            default: return std::nullopt;
+        }
+    }
+    return std::optional(Move(from, to, NONE, NONE, mt));
 }
 
 void uci_loop() {

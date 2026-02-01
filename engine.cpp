@@ -18,8 +18,21 @@ namespace Engine {
 
     Move search(const std::optional<std::string>& fen, const std::vector<Move>& moves) {
         Board board = fen ? Board(fen) : Board();
-        for (const Move& move : moves)
-            board.make_move(move);
+        Move gen_moves[MAX_MOVES];
+        for (const Move& move : moves) {
+            const int cnt = board.generate_legal_moves(gen_moves);
+            for (int i = 0; i < cnt; i++)
+                if (gen_moves[i].from() == move.from() && gen_moves[i].to() == move.to()) {
+                    if (move.move_type() != REGULAR) { // if the move has a promotion
+                        if (move.move_type() == gen_moves[i].move_type()) { // pick the right one
+                            board.make_move(gen_moves[i]);
+                        }
+                    } else {
+                        board.make_move(gen_moves[i]);
+                        break;
+                    }
+                }
+        }
         int _none;
         return search(board, 4, _none);
     }
