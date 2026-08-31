@@ -1,8 +1,9 @@
+#include "cli.h"
+#include "board.h"
+#include "search.h"
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
-#include "board.h"
-#include "search.h"
 
 bool parse_move_format(std::string& move) {
     if (move.size() < 4) {

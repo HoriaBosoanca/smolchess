@@ -1,8 +1,6 @@
+#include "board.h"
 #include <cstdint>
 #include <iostream>
-#include "board.h"
-
-#include <bitset>
 #include <optional>
 
 // optimized

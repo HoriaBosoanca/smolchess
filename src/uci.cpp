@@ -1,9 +1,8 @@
 #include "uci.h"
-
+#include "engine.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include "engine.h"
 
 std::optional<Move> parse_move(const std::string& move) {
     if (move.size() != 4 && !(move.size() == 5 && (move[4] == 'q' || move[4] == 'r' || move[4] == 'b' || move[4] == 'n')))

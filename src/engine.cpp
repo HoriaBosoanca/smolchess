@@ -1,9 +1,9 @@
-#include <vector>
 #include "engine.h"
 #include "board.h"
 #include "cli.h"
 #include "search.h"
 #include "uci.h"
+#include <vector>
 
 #define USE_UCI true
 

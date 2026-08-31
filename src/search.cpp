@@ -1,8 +1,8 @@
+#include "search.h"
+#include "board.h"
 #include <climits>
 #include <algorithm>
 #include <iostream>
-#include "board.h"
-#include "search.h"
 
 std::optional<Move> best_move;
 int root_depth;
