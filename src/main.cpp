@@ -1,6 +1,6 @@
-#include "engine.h"
+#include "uci.h"
 
 int main() {
-    Engine::loop();
+    run();
     return 0;
 }
