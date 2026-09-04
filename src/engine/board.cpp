@@ -216,14 +216,14 @@ int Board::generate_moves(Move* moves) const {
                 moves[c++] = Move(i, *to, KING, NONE, KING_CASTLING);
         } else {
             if (const Piece diagonal_piece = ((bitboard[turn_color][BISHOP] & pos) ? BISHOP : QUEEN); bitboard[turn_color][diagonal_piece] & pos) { // bishops or queens
-                uint8_t d_moves[13];
+                uint8_t d_moves[14];
                 const int cnt = get_diagonal_moves(i, any_occupied, d_moves);
                 for (int j = 0; j < cnt; j++)
                     if (!(occupied[turn_color] & (1ULL << d_moves[j])))
                         moves[c++] = Move(i, d_moves[j], diagonal_piece, get_piece(d_moves[j], !turn_color));
             }
             if (const Piece straight_piece = (bitboard[turn_color][ROOK] & pos) ? ROOK : QUEEN; bitboard[turn_color][straight_piece] & pos) { // rooks or queens
-                uint8_t s_moves[13];
+                uint8_t s_moves[14];
                 const int cnt = get_straight_moves(i, any_occupied, s_moves);
                 for (int j = 0; j < cnt; j++)
                     if (!(occupied[turn_color] & (1ULL << s_moves[j])))
@@ -294,7 +294,7 @@ bool Board::is_in_check(const Color color) const {
     const uint64_t any_occupied = get_occupied(!color) | get_occupied(color);
     // diagonal pieces
     uint64_t d_sum = 0;
-    uint8_t d_pos[13];
+    uint8_t d_pos[14];
     const int d_cnt = get_diagonal_moves(i, any_occupied, d_pos);
     for (int j = 0; j < d_cnt; j++)
         d_sum |= 1ULL << d_pos[j];
@@ -302,7 +302,7 @@ bool Board::is_in_check(const Color color) const {
         return true;
     // straight pieces
     uint64_t s_sum = 0;
-    uint8_t s_pos[13];
+    uint8_t s_pos[14];
     const int s_cnt = get_straight_moves(i, any_occupied, s_pos);
     for (int j = 0; j < s_cnt; j++)
         s_sum |= 1ULL << s_pos[j];
