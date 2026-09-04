@@ -5,7 +5,7 @@
 #include <vector>
 
 static Move get_move_from_token(const std::string& move) {
-    if(!(move.size() == 4 || (move.size() == 5 && (move[4] == 'q' || move[4] == 'r' || move[4] == 'b' || move[4] == 'n'))) {
+    if(!(move.size() == 4 || (move.size() == 5 && (move[4] == 'q' || move[4] == 'r' || move[4] == 'b' || move[4] == 'n')))) {
         throw std::runtime_error("bad move input format!");
     }
     if (!('a' <= move[0] && move[0] <= 'h' &&
@@ -72,7 +72,7 @@ void run() {
             }
         } else if (token == "go") {
             // time controls (wtime btime winc binc) to be implemented
-            std::cout << "bestmove " << bestmove(fen, moves).get_string() << "\n";
+            std::cout << "bestmove " << bestmove(fen, moves).to_string() << "\n";
         } else {
             // unknown command
         }

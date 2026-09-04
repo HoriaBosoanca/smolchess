@@ -58,9 +58,9 @@ Move bestmove(const std::optional<std::string>& fen, const std::vector<Move>& mo
         const int move_cnt = board.generate_legal_moves(generated_moves);
         bool found_move = false;
         for (int i = 0; i < move_cnt; i++)
-            if (generated_moves[i] == move) {
+            if (move == generated_moves[i]) {
                 found_move = true;
-                board.make_move(move);
+                board.make_move(generated_moves[i]);
                 break;
             }
         if (!found_move) {

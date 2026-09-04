@@ -1,4 +1,5 @@
 #include "move.h"
+#include <board.h>
 
 Move::Move() : move(0), pieces(0) {}
 
@@ -28,5 +29,32 @@ uint8_t Move::to_piece() const {
 }
 
 bool Move::operator==(const Move& other) const {
-	return from() == other.from() && to() == other.to() && move_type() == other.move_type();
+	if (from() == other.from() && to() == other.to()) {
+		if (move_type() != REGULAR) { // if the move has a promotion
+			if (move_type() == other.move_type()) { // pick the right one
+				return true;
+			}
+		} else {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::string Move::to_string() const {
+	std::string s;
+	s += file(from());
+	s += static_cast<char>('0'+rank(from()));
+	s += file(to());
+	s += static_cast<char>('0'+rank(to()));
+	if (const MoveType mt = move_type(); mt == QUEEN_PROMOTION) {
+		s += 'q';
+	} else if (mt == ROOK_PROMOTION) {
+		s += 'r';
+	} else if (mt == BISHOP_PROMOTION) {
+		s += 'b';
+	} else if (mt == KNIGHT_PROMOTION) {
+		s += 'n';
+	}
+	return s;
 }

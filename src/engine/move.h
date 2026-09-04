@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 enum Piece : uint8_t {
 	PAWN,
@@ -34,4 +35,5 @@ public:
 	uint8_t from_piece() const;
 	uint8_t to_piece() const;
 	bool operator==(const Move& other) const;
+	std::string to_string() const;
 };

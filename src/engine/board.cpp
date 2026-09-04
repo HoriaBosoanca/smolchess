@@ -249,7 +249,7 @@ Piece Board::get_piece(const uint8_t pos, const Color color) const {
 
 std::optional<uint8_t> Board::get_nearby_en_passant(const uint8_t i, const Color color) const {
     uint8_t en_passant = extra_temp_data & 0b00001111;
-    en_passant = static_cast<uint8_t>(en_passant - color ? 0 : 8);
+    en_passant = static_cast<uint8_t>(en_passant - (color ? 0 : 8));
     if (i % 8 + 1 == en_passant) {
         return offset_idx(i, 1, color ? -1 : 1);
     }
