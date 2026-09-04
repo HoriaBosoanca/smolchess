@@ -1,0 +1,32 @@
+#include "move.h"
+
+Move::Move() : move(0), pieces(0) {}
+
+Move::Move(const uint8_t from, const uint8_t to, const Piece from_piece, const Piece to_piece, const MoveType move_type) {
+	move = from | (to << 6) | (move_type << 12);
+	pieces = from_piece | (to_piece << 4);
+}
+
+uint8_t Move::from() const {
+	return move & 0b111111;
+}
+
+uint8_t Move::to() const {
+	return (move >> 6) & 0b111111;
+}
+
+MoveType Move::move_type() const {
+	return static_cast<MoveType>(move >> 12 & 0b1111);
+}
+
+uint8_t Move::from_piece() const {
+	return pieces & 0b1111;
+}
+
+uint8_t Move::to_piece() const {
+	return (pieces >> 4) & 0b1111;
+}
+
+bool Move::operator==(const Move& other) const {
+	return from() == other.from() && to() == other.to() && move_type() == other.move_type();
+}
