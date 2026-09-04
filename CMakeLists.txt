@@ -21,9 +21,9 @@ add_custom_target(playtest
     -engine cmd=$<TARGET_FILE:smolchess> name=p1
     -engine cmd=$<TARGET_FILE:smolchess> name=p2
     -each proto=uci tc=inf
-#    -openings file=${CMAKE_SOURCE_DIR}/build/assets/8moves_v3.pgn format=pgn order=random
-    -games 1
-    -pgnout ${CMAKE_SOURCE_DIR}/build/last_game.pgn
+    -openings file=${CMAKE_SOURCE_DIR}/build/assets/books/8moves_v3.pgn format=pgn order=random
+    -games 10
+    -pgnout ${CMAKE_SOURCE_DIR}/build/assets/played_games.pgn
     DEPENDS smolchess
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
