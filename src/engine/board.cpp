@@ -3,177 +3,50 @@
 #include <iostream>
 #include <optional>
 
-// optimized
-
-Move::Move() : move(0), pieces(0) {}
-
-Move::Move(const uint8_t from, const uint8_t to, const Piece from_piece, const Piece to_piece, const MoveType move_type) {
-    move = from | (to << 6) | (move_type << 12);
-    pieces = from_piece | (to_piece << 4);
-}
-
-uint8_t Move::from() const {
-    return move & 0b111111;
-}
-
-uint8_t Move::to() const {
-    return (move >> 6) & 0b111111;
-}
-
-MoveType Move::move_type() const {
-    return static_cast<MoveType>(move >> 12 & 0b1111);
-}
-
-uint8_t Move::from_piece() const {
-    return pieces & 0b1111;
-}
-
-uint8_t Move::to_piece() const {
-    return (pieces >> 4) & 0b1111;
-}
-
-bool Move::operator==(const Move& other) const {
-    return from() == other.from() && to() == other.to() && move_type() == other.move_type();
-}
-
-void Move::print() const {
-    std::cout << piece_map[from_piece()] << " " << file(from()) << rank(from()) << file(to()) << rank(to()) << " " << piece_map[to_piece()] << " ";
-}
-
-std::string Move::get_string() const {
-    std::string s;
-    s += file(from());
-    s += static_cast<char>('0'+rank(from()));
-    s += file(to());
-    s += static_cast<char>('0'+rank(to()));
-    if (const MoveType mt = move_type(); mt == QUEEN_PROMOTION) {
-        s += 'q';
-    } else if (mt == ROOK_PROMOTION) {
-        s += 'r';
-    } else if (mt == BISHOP_PROMOTION) {
-        s += 'b';
-    } else if (mt == KNIGHT_PROMOTION) {
-        s += 'n';
+Board::Board(const std::optional<std::string>& fen) : bitboard{}, extra_temp_data(0b11110000), turn_color(WHITE) {
+    if (fen) {
+        std::cout << "FEN not yet implemented!\n";
+    } else {
+        setup_normal();
     }
-    return s;
 }
 
-void Board::make_move(const Move move) {
-    const uint8_t from = move.from(), to = move.to(), from_piece = move.from_piece(), to_piece = move.to_piece();
-    const MoveType move_type = move.move_type();
-    bitboard[turn][from_piece] = (bitboard[turn][from_piece] & ~(1ULL << from)) | 1ULL << to;
-    if (to_piece != NONE) {
-        bitboard[!turn][to_piece] &= ~(1ULL << to);
-    }
-    // save en passant
-    clear_en_passant();
-    if (from_piece == PAWN && rank(to)-rank(from) == (turn ? -2 : 2)) {
-        add_en_passant(to, turn);
-    }
-    // remove castling rights
-    if (from_piece == KING) {
-        temp_state &= (turn ? 0b00111111 : 0b11001111);
-    }
-    if (from_piece == ROOK) {
-        temp_state &= (turn ? (from == 56 ? 0b10111111 : 0b01111111) : (from == 0 ? 0b11101111 : 0b11011111));
-    }
-    if (to_piece == ROOK) {
-        if (to == (turn ? 0 : 56)) {
-            temp_state &= (turn ? 0b11101111 : 0b10111111);
-        }
-        if (to == (turn ? 7 : 63)) {
-            temp_state &= (turn ? 0b11011111 : 0b01111111);
+void Board::setup_normal() {
+    for (int i = 0; i < 8; i++) {
+        if (i == 0 || i == 7) {
+            add_piece(1ULL << (8 * i    ), i == 7, ROOK);
+            add_piece(1ULL << (8 * i + 1), i == 7, KNIGHT);
+            add_piece(1ULL << (8 * i + 2), i == 7, BISHOP);
+            add_piece(1ULL << (8 * i + 3), i == 7, QUEEN);
+            add_piece(1ULL << (8 * i + 4), i == 7, KING);
+            add_piece(1ULL << (8 * i + 5), i == 7, BISHOP);
+            add_piece(1ULL << (8 * i + 6), i == 7, KNIGHT);
+            add_piece(1ULL << (8 * i + 7), i == 7, ROOK);
+        } else if (i == 1 || i == 6) {
+            for (int j = 0; j < 8; j++) {
+                add_piece(1ULL << (8 * i + j), i == 6, PAWN);
+            }
         }
     }
-    switch (move_type) {
-        case REGULAR: {
-            break;
-        }
-        case EN_PASSANT: {
-            bitboard[!turn][PAWN] &= ~(1ULL << offset_idx(to, 0, turn ? 1 : -1));
-            break;
-        }
-        case QUEEN_CASTLING: {
-            bitboard[turn][ROOK] = (bitboard[turn][ROOK] & ~(1ULL << (turn ? 56 : 0))) | 1ULL << (turn ? 59 : 3);
-            break;
-        }
-        case KING_CASTLING: {
-            bitboard[turn][ROOK] = (bitboard[turn][ROOK] & ~(1ULL << (turn ? 63 : 7))) | 1ULL << (turn ? 61 : 5);
-            break;
-        }
-        case KNIGHT_PROMOTION: {
-            bitboard[turn][PAWN] &= ~(1ULL << to);
-            bitboard[turn][KNIGHT] |= 1ULL << to;
-            break;
-        }
-        case BISHOP_PROMOTION: {
-            bitboard[turn][PAWN] &= ~(1ULL << to);
-            bitboard[turn][BISHOP] |= 1ULL << to;
-            break;
-        }
-        case ROOK_PROMOTION: {
-            bitboard[turn][PAWN] &= ~(1ULL << to);
-            bitboard[turn][ROOK] |= 1ULL << to;
-            break;
-        }
-        case QUEEN_PROMOTION: {
-            bitboard[turn][PAWN] &= ~(1ULL << to);
-            bitboard[turn][QUEEN] |= 1ULL << to;
-            break;
-        }
-        default: {
-            std::cout << "Unrecognized move type?\n";
-            exit(-1);
-        }
-    }
-    turn = !turn;
 }
 
-void Board::clear_en_passant() {
-    temp_state &= 0b11110000;
+void Board::add_piece(const uint64_t pos, const Color color, const int piece) {
+    bitboard[color][piece] |= pos;
 }
 
-Piece Board::get_piece(const uint8_t pos, const Color color) const {
-    const uint64_t pos64 = (1ULL << pos);
-    for (int p = PAWN; p <= KING; p++)
-        if (bitboard[color][p] & pos64)
-            return static_cast<Piece>(p);
-    return NONE;
-}
-
-uint64_t Board::get_occupied(const Color color) const {
-    const uint64_t* c = bitboard[color];
-    return c[PAWN] | c[KNIGHT] | c[BISHOP] | c[ROOK] | c[QUEEN] | c[KING];
-}
-
-void Board::add_en_passant(const uint8_t i, const Color color) {
-    temp_state |= static_cast<uint8_t>(i % 8 + (color ? 8 : 0));
-}
-
-std::optional<uint8_t> Board::get_nearby_en_passant(const uint8_t i, const Color color) const {
-    uint8_t en_passant = temp_state & 0b00001111;
-    en_passant = static_cast<uint8_t>(en_passant - color ? 0 : 8);
-    if (i % 8 + 1 == en_passant) {
-        return offset_idx(i, 1, color ? -1 : 1);
+int Board::generate_legal_moves(Move* legal_moves) {
+    int c = 0;
+    Move unfiltered_moves[MAX_MOVES];
+    const int cnt = generate_moves(unfiltered_moves);
+    for (int i = 0; i < cnt; i++) {
+        const Board prev = *this;
+        make_move(unfiltered_moves[i]);
+        if (!is_in_check(!turn_color)) {
+            legal_moves[c++] = unfiltered_moves[i];
+        }
+        *this = prev;
     }
-    if (i % 8 - 1 == en_passant) {
-        return offset_idx(i, -1, color ? -1 : 1);
-    }
-    return std::nullopt;
-}
-
-std::optional<uint8_t> Board::get_castle_move(const Color color, const bool queen_side) const {
-    if (!(temp_state & 0b11110000 & ((1 << (queen_side ? 4 : 5)) << (color ? 2 : 0)))) { // verify castling rights
-        return std::nullopt;
-    }
-    const uint64_t occupied = get_occupied(color) | get_occupied(!color);
-    if (queen_side && !(occupied & (1ULL<<(color?57:1) | 1ULL<<(color?58:2) | 1ULL<<(color?59:3)))) {
-        return color?58:2;
-    }
-    if (!queen_side && !(occupied & (1ULL<<(color?61:5) | 1ULL<<(color?62:6)))) {
-        return color?62:6;
-    }
-    return std::nullopt;
+    return c;
 }
 
 inline int get_knight_moves(const uint8_t i, uint8_t* indices) {
@@ -279,6 +152,127 @@ inline int get_straight_moves(const uint8_t i, const uint64_t any_occupied, uint
     return c;
 }
 
+int Board::generate_moves(Move* moves) const {
+    int c = 0; // move count
+
+    const uint64_t occupied[2] = {get_occupied(WHITE), get_occupied(BLACK)};
+    const uint64_t any_occupied = occupied[WHITE] | occupied[BLACK];
+
+    for (uint8_t i = 0; i < 64; i++) {
+        if (const uint64_t pos = 1ULL << i; !(any_occupied & pos)) {
+        } else if (bitboard[turn_color][PAWN] & pos) { // pawns
+            const int col_sgn = (turn_color ? -1 : 1), col_start_rank = (turn_color ? 7 : 2);
+            bool promotion = false;
+            if (rank(i) == (turn_color ? 2 : 7))
+                promotion = true;
+            if (auto en_passant = get_nearby_en_passant(i, turn_color))
+                moves[c++] = Move(i, *en_passant, PAWN, get_piece(*en_passant, !turn_color), EN_PASSANT);
+            if (const uint8_t new_i = offset_idx(i, 0, col_sgn); !((1ULL << new_i) & any_occupied)) {
+                if (promotion) {
+                    for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color), static_cast<MoveType>(move_type));
+                } else {
+                    moves[c++] = Move(i, new_i, PAWN);
+                }
+                if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); !((1ULL << new_i2) & any_occupied) && rank(i) == col_start_rank) {
+                    moves[c++] = Move(i, new_i2, PAWN);
+                }
+            }
+            if (file(i) > 'a') { // if it has a piece ahead-left
+                if (const uint8_t new_i = offset_idx(i, -1, col_sgn); (1ULL << new_i) & occupied[!turn_color]) {
+                    if (promotion) {
+                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color), static_cast<MoveType>(move_type));
+                    } else {
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color));
+                    }
+                }
+            }
+            if (file(i) < 'h') { // if it has a piece ahead-right
+                if (const uint8_t new_i = offset_idx(i, 1, col_sgn); (1ULL << new_i) & occupied[!turn_color]) {
+                    if (promotion) {
+                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
+                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color), static_cast<MoveType>(move_type));
+                    } else {
+                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color));
+                    }
+                }
+            }
+        } else if (bitboard[turn_color][KNIGHT] & pos) { // knights
+            uint8_t n_moves[8];
+            const int cnt = get_knight_moves(i, n_moves);
+            for (int j = 0; j < cnt; j++)
+                if (!(occupied[turn_color] & (1ULL << n_moves[j])))
+                    moves[c++] = Move(i, n_moves[j], KNIGHT, get_piece(n_moves[j], !turn_color));
+        } else if (bitboard[turn_color][KING] & pos) { // kings
+            uint8_t k_moves[8];
+            const int cnt = get_king_moves(i, k_moves);
+            for (int j = 0; j < cnt; j++)
+                if (!(occupied[turn_color] & (1ULL << k_moves[j])))
+                    moves[c++] = Move(i, k_moves[j], KING, get_piece(k_moves[j], !turn_color));
+            if (auto to = get_castle_move(turn_color, true))
+                moves[c++] = Move(i, *to, KING, NONE, QUEEN_CASTLING);
+            if (auto to = get_castle_move(turn_color, false))
+                moves[c++] = Move(i, *to, KING, NONE, KING_CASTLING);
+        } else {
+            if (const Piece diagonal_piece = ((bitboard[turn_color][BISHOP] & pos) ? BISHOP : QUEEN); bitboard[turn_color][diagonal_piece] & pos) { // bishops or queens
+                uint8_t d_moves[13];
+                const int cnt = get_diagonal_moves(i, any_occupied, d_moves);
+                for (int j = 0; j < cnt; j++)
+                    if (!(occupied[turn_color] & (1ULL << d_moves[j])))
+                        moves[c++] = Move(i, d_moves[j], diagonal_piece, get_piece(d_moves[j], !turn_color));
+            }
+            if (const Piece straight_piece = (bitboard[turn_color][ROOK] & pos) ? ROOK : QUEEN; bitboard[turn_color][straight_piece] & pos) { // rooks or queens
+                uint8_t s_moves[13];
+                const int cnt = get_straight_moves(i, any_occupied, s_moves);
+                for (int j = 0; j < cnt; j++)
+                    if (!(occupied[turn_color] & (1ULL << s_moves[j])))
+                        moves[c++] = Move(i, s_moves[j], straight_piece, get_piece(s_moves[j], !turn_color));
+            }
+        }
+    }
+    return c;
+}
+
+uint64_t Board::get_occupied(const Color color) const {
+    const uint64_t* c = bitboard[color];
+    return c[PAWN] | c[KNIGHT] | c[BISHOP] | c[ROOK] | c[QUEEN] | c[KING];
+}
+
+Piece Board::get_piece(const uint8_t pos, const Color color) const {
+    const uint64_t pos64 = (1ULL << pos);
+    for (int p = PAWN; p <= KING; p++)
+        if (bitboard[color][p] & pos64)
+            return static_cast<Piece>(p);
+    return NONE;
+}
+
+std::optional<uint8_t> Board::get_nearby_en_passant(const uint8_t i, const Color color) const {
+    uint8_t en_passant = extra_temp_data & 0b00001111;
+    en_passant = static_cast<uint8_t>(en_passant - color ? 0 : 8);
+    if (i % 8 + 1 == en_passant) {
+        return offset_idx(i, 1, color ? -1 : 1);
+    }
+    if (i % 8 - 1 == en_passant) {
+        return offset_idx(i, -1, color ? -1 : 1);
+    }
+    return std::nullopt;
+}
+
+std::optional<uint8_t> Board::get_castle_move(const Color color, const bool queen_side) const {
+    if (!(extra_temp_data & 0b11110000 & ((1 << (queen_side ? 4 : 5)) << (color ? 2 : 0)))) { // verify castling rights
+        return std::nullopt;
+    }
+    const uint64_t occupied = get_occupied(color) | get_occupied(!color);
+    if (queen_side && !(occupied & (1ULL<<(color?57:1) | 1ULL<<(color?58:2) | 1ULL<<(color?59:3)))) {
+        return color?58:2;
+    }
+    if (!queen_side && !(occupied & (1ULL<<(color?61:5) | 1ULL<<(color?62:6)))) {
+        return color?62:6;
+    }
+    return std::nullopt;
+}
+
 bool Board::is_in_check(const Color color) const {
     // pawns
     const auto i = static_cast<uint8_t>(std::countr_zero(bitboard[color][KING]));
@@ -326,176 +320,92 @@ bool Board::is_in_check(const Color color) const {
     return false;
 }
 
-int Board::generate_moves(Move* moves) const {
-    int c = 0; // move count
+void Board::make_move(const Move move) {
+    const uint8_t from = move.from(), to = move.to(), from_piece = move.from_piece(), to_piece = move.to_piece();
+    const MoveType move_type = move.move_type();
 
-    const uint64_t occupied[2] = {get_occupied(WHITE), get_occupied(BLACK)};
-    const uint64_t any_occupied = occupied[WHITE] | occupied[BLACK];
-
-    for (uint8_t i = 0; i < 64; i++) {
-        if (const uint64_t pos = 1ULL << i; !(any_occupied & pos)) {
-        } else if (bitboard[turn][PAWN] & pos) { // pawns
-            const int col_sgn = (turn ? -1 : 1), col_start_rank = (turn ? 7 : 2);
-            bool promotion = false;
-            if (rank(i) == (turn ? 2 : 7))
-                promotion = true;
-            if (auto en_passant = get_nearby_en_passant(i, turn))
-                moves[c++] = Move(i, *en_passant, PAWN, get_piece(*en_passant, !turn), EN_PASSANT);
-            if (const uint8_t new_i = offset_idx(i, 0, col_sgn); !((1ULL << new_i) & any_occupied)) {
-                if (promotion) {
-                    for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
-                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
-                } else {
-                    moves[c++] = Move(i, new_i, PAWN);
-                }
-                if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); !((1ULL << new_i2) & any_occupied) && rank(i) == col_start_rank) {
-                    moves[c++] = Move(i, new_i2, PAWN);
-                }
-            }
-            if (file(i) > 'a') { // if it has a piece ahead-left
-                if (const uint8_t new_i = offset_idx(i, -1, col_sgn); (1ULL << new_i) & occupied[!turn]) {
-                    if (promotion) {
-                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
-                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
-                    } else {
-                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
-                    }
-                }
-            }
-            if (file(i) < 'h') { // if it has a piece ahead-right
-                if (const uint8_t new_i = offset_idx(i, 1, col_sgn); (1ULL << new_i) & occupied[!turn]) {
-                    if (promotion) {
-                        for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
-                            moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn), static_cast<MoveType>(move_type));
-                    } else {
-                        moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn));
-                    }
-                }
-            }
-        } else if (bitboard[turn][KNIGHT] & pos) { // knights
-            uint8_t n_moves[8];
-            const int cnt = get_knight_moves(i, n_moves);
-            for (int j = 0; j < cnt; j++)
-                if (!(occupied[turn] & (1ULL << n_moves[j])))
-                    moves[c++] = Move(i, n_moves[j], KNIGHT, get_piece(n_moves[j], !turn));
-        } else if (bitboard[turn][KING] & pos) { // kings
-            uint8_t k_moves[8];
-            const int cnt = get_king_moves(i, k_moves);
-            for (int j = 0; j < cnt; j++)
-                if (!(occupied[turn] & (1ULL << k_moves[j])))
-                    moves[c++] = Move(i, k_moves[j], KING, get_piece(k_moves[j], !turn));
-            if (auto to = get_castle_move(turn, true))
-                moves[c++] = Move(i, *to, KING, NONE, QUEEN_CASTLING);
-            if (auto to = get_castle_move(turn, false))
-                moves[c++] = Move(i, *to, KING, NONE, KING_CASTLING);
-        } else {
-            if (const Piece diagonal_piece = ((bitboard[turn][BISHOP] & pos) ? BISHOP : QUEEN); bitboard[turn][diagonal_piece] & pos) { // bishops or queens
-                uint8_t d_moves[13];
-                const int cnt = get_diagonal_moves(i, any_occupied, d_moves);
-                for (int j = 0; j < cnt; j++)
-                    if (!(occupied[turn] & (1ULL << d_moves[j])))
-                        moves[c++] = Move(i, d_moves[j], diagonal_piece, get_piece(d_moves[j], !turn));
-            }
-            if (const Piece straight_piece = (bitboard[turn][ROOK] & pos) ? ROOK : QUEEN; bitboard[turn][straight_piece] & pos) { // rooks or queens
-                uint8_t s_moves[13];
-                const int cnt = get_straight_moves(i, any_occupied, s_moves);
-                for (int j = 0; j < cnt; j++)
-                    if (!(occupied[turn] & (1ULL << s_moves[j])))
-                        moves[c++] = Move(i, s_moves[j], straight_piece, get_piece(s_moves[j], !turn));
-            }
+    bitboard[turn_color][from_piece] = (bitboard[turn_color][from_piece] & ~(1ULL << from)) | (1ULL << to);
+    if (to_piece != NONE) {
+        bitboard[!turn_color][to_piece] &= ~(1ULL << to);
+    }
+    // save en passant
+    clear_en_passant_availability();
+    if (from_piece == PAWN && rank(to)-rank(from) == (turn_color ? -2 : 2)) {
+        add_en_passant_availability(to, turn_color);
+    }
+    // remove castling rights
+    if (from_piece == KING) {
+        extra_temp_data &= (turn_color ? 0b00111111 : 0b11001111);
+    }
+    if (from_piece == ROOK) {
+        extra_temp_data &= (turn_color ? (from == 56 ? 0b10111111 : 0b01111111) : (from == 0 ? 0b11101111 : 0b11011111));
+    }
+    if (to_piece == ROOK) {
+        if (to == (turn_color ? 0 : 56)) {
+            extra_temp_data &= (turn_color ? 0b11101111 : 0b10111111);
+        }
+        if (to == (turn_color ? 7 : 63)) {
+            extra_temp_data &= (turn_color ? 0b11011111 : 0b01111111);
         }
     }
-    return c;
+    switch (move_type) {
+        case REGULAR: {
+            break;
+        }
+        case EN_PASSANT: {
+            bitboard[!turn_color][PAWN] &= ~(1ULL << offset_idx(to, 0, turn_color ? 1 : -1));
+            break;
+        }
+        case QUEEN_CASTLING: {
+            bitboard[turn_color][ROOK] = (bitboard[turn_color][ROOK] & ~(1ULL << (turn_color ? 56 : 0))) | 1ULL << (turn_color ? 59 : 3);
+            break;
+        }
+        case KING_CASTLING: {
+            bitboard[turn_color][ROOK] = (bitboard[turn_color][ROOK] & ~(1ULL << (turn_color ? 63 : 7))) | 1ULL << (turn_color ? 61 : 5);
+            break;
+        }
+        case KNIGHT_PROMOTION: {
+            bitboard[turn_color][PAWN] &= ~(1ULL << to);
+            bitboard[turn_color][KNIGHT] |= 1ULL << to;
+            break;
+        }
+        case BISHOP_PROMOTION: {
+            bitboard[turn_color][PAWN] &= ~(1ULL << to);
+            bitboard[turn_color][BISHOP] |= 1ULL << to;
+            break;
+        }
+        case ROOK_PROMOTION: {
+            bitboard[turn_color][PAWN] &= ~(1ULL << to);
+            bitboard[turn_color][ROOK] |= 1ULL << to;
+            break;
+        }
+        case QUEEN_PROMOTION: {
+            bitboard[turn_color][PAWN] &= ~(1ULL << to);
+            bitboard[turn_color][QUEEN] |= 1ULL << to;
+            break;
+        }
+        default: {
+            std::cout << "Unrecognized move type?\n";
+            exit(-1);
+        }
+    }
+    turn_color = !turn_color;
 }
 
-int Board::generate_legal_moves(Move* legal_moves) {
-    int c = 0;
-    Move unfiltered_moves[MAX_MOVES];
-    const int cnt = generate_moves(unfiltered_moves);
-    for (int i = 0; i < cnt; i++) {
-        const Board prev = *this;
-        make_move(unfiltered_moves[i]);
-        if (!is_in_check(!turn)) {
-            legal_moves[c++] = unfiltered_moves[i];
-        }
-        *this = prev;
-    }
-    return c;
+void Board::clear_en_passant_availability() {
+    extra_temp_data &= 0b11110000;
+}
+
+void Board::add_en_passant_availability(const uint8_t i, const Color color) {
+    extra_temp_data |= static_cast<uint8_t>(i % 8 + (color ? 8 : 0));
 }
 
 GameStatus Board::game_over() {
     if (Move legal_moves[MAX_MOVES]; generate_legal_moves(legal_moves) > 0) {
         return Ongoing;
     }
-    if (!is_in_check(turn)) {
+    if (!is_in_check(turn_color)) {
         return Draw;
     }
-    return turn ? WhiteWin : BlackWin;
-}
-
-// user input / initialization
-
-void Board::setup_normal() {
-    for (int i = 0; i < 8; i++) {
-        if (i == 0 || i == 7) {
-            add_piece(1ULL << (8 * i    ), i == 7, ROOK);
-            add_piece(1ULL << (8 * i + 1), i == 7, KNIGHT);
-            add_piece(1ULL << (8 * i + 2), i == 7, BISHOP);
-            add_piece(1ULL << (8 * i + 3), i == 7, QUEEN);
-            add_piece(1ULL << (8 * i + 4), i == 7, KING);
-            add_piece(1ULL << (8 * i + 5), i == 7, BISHOP);
-            add_piece(1ULL << (8 * i + 6), i == 7, KNIGHT);
-            add_piece(1ULL << (8 * i + 7), i == 7, ROOK);
-        } else if (i == 1 || i == 6) {
-            for (int j = 0; j < 8; j++) {
-                add_piece(1ULL << (8 * i + j), i == 6, PAWN);
-            }
-        }
-    }
-}
-
-void Board::add_piece(const uint64_t pos, const Color color, const int piece) {
-    bitboard[color][piece] |= pos;
-}
-
-Board::Board(const std::optional<std::string>& fen) : bitboard{}, temp_state(0b11110000), turn(WHITE) {
-    if (fen) {
-        std::cout << "FEN not yet implemented!\n";
-    } else {
-        setup_normal();
-    }
-}
-
-void Board::print_board() const {
-    for (int i = 7; i >= 0; i--) {
-        std::cout << i+1 << " ";
-        for (int j = 0; j < 8; j++) {
-            Color color = WHITE;
-            Piece piece = get_piece(static_cast<uint8_t>(8 * i + j), color);
-            if (piece == NONE) {
-                color = BLACK;
-                piece = get_piece(static_cast<uint8_t>(8 * i + j), color);
-            }
-            std::cout << (piece == NONE ? ' ' : static_cast<char>(piece_map[piece] + (color ? '\0' : ' '))) << " ";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "  ";
-    for (int i = 0; i < 8; i++) {
-        std::cout << static_cast<char>('A' + i) << " ";
-    }
-    std::cout << "\n";
-}
-
-void Board::print_moves() {
-    Move moves[MAX_MOVES];
-    const int move_count = generate_legal_moves(moves);
-    std::cout << "Legal moves:\n";
-    for (int i = 0; i < move_count; i++) {
-        moves[i].print();
-        if (i % 3 == 2) std::cout << "\n";
-    }
-    if (move_count % 3 != 0) {
-        std::cout << "\n";
-    }
+    return turn_color ? WhiteWin : BlackWin;
 }

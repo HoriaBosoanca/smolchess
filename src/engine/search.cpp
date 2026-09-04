@@ -3,6 +3,7 @@
 #include <climits>
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
 
 std::optional<Move> best_move;
 int root_depth;
@@ -48,4 +49,24 @@ Move search(Board& board, const int depth, int& eval) {
         throw std::runtime_error("search failed!");
     }
     return best_move.value();
+}
+
+Move bestmove(const std::optional<std::string>& fen, const std::vector<Move>& moves) {
+    Board board(fen);
+    for (const Move& move : moves) {
+        Move generated_moves[MAX_MOVES];
+        const int move_cnt = board.generate_legal_moves(generated_moves);
+        bool found_move = false;
+        for (int i = 0; i < move_cnt; i++)
+            if (generated_moves[i] == move) {
+                found_move = true;
+                board.make_move(move);
+                break;
+            }
+        if (!found_move) {
+            throw std::runtime_error("no legal move matching input found!");
+        }
+    }
+    int _nothing;
+    return search(board, 4, _nothing);
 }

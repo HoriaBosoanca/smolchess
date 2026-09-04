@@ -1,5 +1,6 @@
 #pragma once
 
 #include "board.h"
+#include <vector>
 
-Move search(Board& board, int depth, int& eval);
+Move bestmove(const std::optional<std::string>& fen, const std::vector<Move>& moves);

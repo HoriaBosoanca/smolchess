@@ -1,5 +1,5 @@
 #include "uci.h"
-#include "engine.h"
+#include "search.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
