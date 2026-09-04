@@ -1,8 +1,8 @@
 #include "board.h"
 
-int piece_value[PIECE_COUNT] = {100, 320, 330, 500, 900, 20000};
+static int piece_value[PIECE_COUNT] = {100, 320, 330, 500, 900, 20000};
 
-int piece_square_table[PIECE_COUNT+1][BOARD_SIZE] = {
+static int piece_square_table[PIECE_COUNT+1][BOARD_SIZE] = {
     { // pawn
          0,  0,  0,  0,  0,  0,  0,  0,
         50, 50, 50, 50, 50, 50, 50, 50,
@@ -69,7 +69,7 @@ int piece_square_table[PIECE_COUNT+1][BOARD_SIZE] = {
     }
 };
 
-inline int mirror(const int pos) {
+static int mirror(const int pos) {
     const int rank = pos/8+1;
     const int file = pos%8;
     return (8-rank)*8+file;

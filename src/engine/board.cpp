@@ -49,7 +49,7 @@ int Board::generate_legal_moves(Move* legal_moves) {
     return c;
 }
 
-inline int get_knight_moves(const uint8_t i, uint8_t* indices) {
+static int get_knight_moves(const uint8_t i, uint8_t* indices) {
     int c = 0;
     if (rank(i) >= 3 && file(i) >= 'b') {
         indices[c++] = offset_idx(i, -1, -2);
@@ -78,7 +78,7 @@ inline int get_knight_moves(const uint8_t i, uint8_t* indices) {
     return c;
 }
 
-inline int get_king_moves(const uint8_t i, uint8_t* indices) {
+static int get_king_moves(const uint8_t i, uint8_t* indices) {
     int c = 0;
     const bool not_max_rank = rank(i) < 8, not_min_rank = rank(i) > 1, not_max_file = file(i) < 'h', not_min_file = file(i) > 'a';
     if (not_max_rank && not_max_file) {
@@ -108,7 +108,7 @@ inline int get_king_moves(const uint8_t i, uint8_t* indices) {
     return c;
 }
 
-inline bool continuous_move_cond(const uint8_t i, const int f_off, const int r_off, const int f_incr, const int r_incr) {
+static bool continuous_move_cond(const uint8_t i, const int f_off, const int r_off, const int f_incr, const int r_incr) {
     bool f_cond = false, r_cond = false;
     switch (f_incr) {
     case 1: f_cond = ((file(i) + f_off) <= 'h'); break;
@@ -125,7 +125,7 @@ inline bool continuous_move_cond(const uint8_t i, const int f_off, const int r_o
     return f_cond && r_cond;
 }
 
-inline void add_continuous_moves(const uint8_t i, const uint64_t any_occupied, const int f_incr, const int r_incr, uint8_t* indices, int& cnt) {
+static void add_continuous_moves(const uint8_t i, const uint64_t any_occupied, const int f_incr, const int r_incr, uint8_t* indices, int& cnt) {
     for (int f_off = f_incr, r_off = r_incr; continuous_move_cond(i, f_off, r_off, f_incr, r_incr); f_off += f_incr, r_off += r_incr) {
         const uint8_t new_i = offset_idx(i, f_off, r_off);
         indices[cnt++] = new_i;
@@ -134,7 +134,7 @@ inline void add_continuous_moves(const uint8_t i, const uint64_t any_occupied, c
     }
 }
 
-inline int get_diagonal_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
+static int get_diagonal_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
     int c = 0;
     add_continuous_moves(i, any_occupied, 1, 1, indices, c);
     add_continuous_moves(i, any_occupied, -1, 1, indices, c);
@@ -143,7 +143,7 @@ inline int get_diagonal_moves(const uint8_t i, const uint64_t any_occupied, uint
     return c;
 }
 
-inline int get_straight_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
+static int get_straight_moves(const uint8_t i, const uint64_t any_occupied, uint8_t* indices) {
     int c = 0;
     add_continuous_moves(i, any_occupied, 1, 0, indices, c);
     add_continuous_moves(i, any_occupied, 0, 1, indices, c);
