@@ -23,21 +23,22 @@ enum GameStatus : uint8_t {
     Draw,
 };
 
-inline int rank(const uint8_t i) {
-    return i/8+1;
+inline int rank(const uint8_t sq) {
+    return sq/8+1;
 }
-inline int file_int(const uint8_t i) {
-    return i % 8;
+inline int file_int(const uint8_t sq) {
+    return sq % 8;
 }
-inline char file_char(const uint8_t i) {
-    return static_cast<char>(file_int(i) + 'a');
+inline char file_char(const uint8_t sq) {
+    return static_cast<char>(file_int(sq) + 'a');
 }
-inline uint8_t offset_idx(uint8_t i, const int file_cnt, const int rank_cnt) {
-    i += static_cast<uint8_t>(file_cnt);
-    i += static_cast<uint8_t>(rank_cnt * 8);
-    return i;
+inline uint8_t offset_idx(uint8_t sq, const int file_cnt, const int rank_cnt) {
+    sq += static_cast<uint8_t>(file_cnt);
+    sq += static_cast<uint8_t>(rank_cnt * 8);
+    return sq;
 }
 
+// TODO: refactor some of the bit operations like making a uint64_t make_bb(uint8_t sq) { return 1ULL << i; } function
 class Board {
     uint64_t bitboard[COLOR_COUNT][PIECE_COUNT];
     /*
@@ -52,7 +53,7 @@ class Board {
     explicit Board(const std::optional<std::string>& fen);
     private: // calls these
     void setup_normal();
-    void add_piece(uint64_t pos, Color color, int piece);
+    void add_piece(uint64_t sq, Color color, int piece);
 
     public: // this func
     int generate_legal_moves(Move* legal_moves);
@@ -60,16 +61,17 @@ class Board {
     int generate_moves(Move* moves) const;
     uint64_t get_occupied(Color color) const;
     Piece get_piece(uint8_t pos, bool color) const;
-    std::optional<uint8_t> get_nearby_en_passant(uint8_t i, Color color) const;
-    std::optional<uint8_t> get_castle_move(Color color, bool queen_side) const;
+    std::optional<uint8_t> get_nearby_en_passant(uint8_t from_sq) const;
+    std::optional<uint8_t> get_castle_move(bool queen_side) const;
     // make_move()
     bool is_in_check(Color color) const;
+    bool is_attacked(uint8_t attacked_sq, Color color) const;
 
     public: // this func
     void make_move(Move move);
     private: // calls these
     void clear_all_en_passant_availability();
-    void add_en_passant_availability(uint8_t i, Color color);
+    void add_en_passant_availability(uint8_t capturable_sq);
 
     public:
     GameStatus game_over();
