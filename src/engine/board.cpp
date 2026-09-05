@@ -3,7 +3,7 @@
 #include <iostream>
 #include <optional>
 
-Board::Board(const std::optional<std::string>& fen) : bitboard{}, extra_temp_data(0b11110000), turn_color(WHITE) {
+Board::Board(const std::optional<std::string>& fen) : bitboard{}, special_data(CASTLING_DATA_MASK), is_any_en_passant(false), turn_color(WHITE) {
     if (fen) {
         std::cout << "FEN not yet implemented!\n";
     } else {
@@ -51,28 +51,28 @@ int Board::generate_legal_moves(Move* legal_moves) {
 
 static int get_knight_moves(const uint8_t i, uint8_t* indices) {
     int c = 0;
-    if (rank(i) >= 3 && file(i) >= 'b') {
+    if (rank(i) >= 3 && file_char(i) >= 'b') {
         indices[c++] = offset_idx(i, -1, -2);
     }
-    if (rank(i) >= 3 && file(i) <= 'g') {
+    if (rank(i) >= 3 && file_char(i) <= 'g') {
         indices[c++] = offset_idx(i, 1, -2);
     }
-    if (rank(i) >= 2 && file(i) <= 'f') {
+    if (rank(i) >= 2 && file_char(i) <= 'f') {
         indices[c++] = offset_idx(i, 2, -1);
     }
-    if (rank(i) <= 7 && file(i) <= 'f') {
+    if (rank(i) <= 7 && file_char(i) <= 'f') {
         indices[c++] = offset_idx(i, 2, 1);
     }
-    if (rank(i) <= 6 && file(i) <= 'g') {
+    if (rank(i) <= 6 && file_char(i) <= 'g') {
         indices[c++] = offset_idx(i, 1, 2);
     }
-    if (rank(i) <= 6 && file(i) >= 'b') {
+    if (rank(i) <= 6 && file_char(i) >= 'b') {
         indices[c++] = offset_idx(i, -1, 2);
     }
-    if (rank(i) <= 7 && file(i) >= 'c') {
+    if (rank(i) <= 7 && file_char(i) >= 'c') {
         indices[c++] = offset_idx(i, -2, 1);
     }
-    if (rank(i) >= 2 && file(i) >= 'c') {
+    if (rank(i) >= 2 && file_char(i) >= 'c') {
         indices[c++] = offset_idx(i, -2, -1);
     }
     return c;
@@ -80,7 +80,7 @@ static int get_knight_moves(const uint8_t i, uint8_t* indices) {
 
 static int get_king_moves(const uint8_t i, uint8_t* indices) {
     int c = 0;
-    const bool not_max_rank = rank(i) < 8, not_min_rank = rank(i) > 1, not_max_file = file(i) < 'h', not_min_file = file(i) > 'a';
+    const bool not_max_rank = rank(i) < 8, not_min_rank = rank(i) > 1, not_max_file = file_char(i) < 'h', not_min_file = file_char(i) > 'a';
     if (not_max_rank && not_max_file) {
         indices[c++] = offset_idx(i, 1, 1);
     }
@@ -111,9 +111,9 @@ static int get_king_moves(const uint8_t i, uint8_t* indices) {
 static bool continuous_move_cond(const uint8_t i, const int f_off, const int r_off, const int f_incr, const int r_incr) {
     bool f_cond = false, r_cond = false;
     switch (f_incr) {
-    case 1: f_cond = ((file(i) + f_off) <= 'h'); break;
+    case 1: f_cond = ((file_char(i) + f_off) <= 'h'); break;
     case 0: f_cond = true; break;
-    case -1: f_cond = ((file(i) + f_off) >= 'a'); break;
+    case -1: f_cond = ((file_char(i) + f_off) >= 'a'); break;
     default: std::cout << "Invalid file increase!\n";
     }
     switch (r_incr) {
@@ -166,7 +166,7 @@ int Board::generate_moves(Move* moves) const {
             if (rank(i) == (turn_color ? 2 : 7))
                 promotion = true;
             if (auto en_passant = get_nearby_en_passant(i, turn_color))
-                moves[c++] = Move(i, *en_passant, PAWN, get_piece(*en_passant, !turn_color), EN_PASSANT);
+                moves[c++] = Move(i, en_passant.value(), PAWN, get_piece(en_passant.value(), !turn_color), EN_PASSANT);
             if (const uint8_t new_i = offset_idx(i, 0, col_sgn); !((1ULL << new_i) & any_occupied)) {
                 if (promotion) {
                     for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
@@ -174,13 +174,14 @@ int Board::generate_moves(Move* moves) const {
                 } else {
                     moves[c++] = Move(i, new_i, PAWN);
                 }
-                if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); !((1ULL << new_i2) & any_occupied) && rank(i) == col_start_rank) {
+                if (const uint8_t new_i2 = offset_idx(i, 0, 2*col_sgn); rank(i) == col_start_rank && !((1ULL << new_i2) & any_occupied)) {
                     moves[c++] = Move(i, new_i2, PAWN);
                 }
             }
-            if (file(i) > 'a') { // if it has a piece ahead-left
+            if (file_char(i) > 'a') { // if it has a piece ahead-left
                 if (const uint8_t new_i = offset_idx(i, -1, col_sgn); (1ULL << new_i) & occupied[!turn_color]) {
                     if (promotion) {
+                        // TODO: can be refactored into an add_all_promotions() function
                         for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
                             moves[c++] = Move(i, new_i, PAWN, get_piece(new_i, !turn_color), static_cast<MoveType>(move_type));
                     } else {
@@ -188,7 +189,7 @@ int Board::generate_moves(Move* moves) const {
                     }
                 }
             }
-            if (file(i) < 'h') { // if it has a piece ahead-right
+            if (file_char(i) < 'h') { // if it has a piece ahead-right
                 if (const uint8_t new_i = offset_idx(i, 1, col_sgn); (1ULL << new_i) & occupied[!turn_color]) {
                     if (promotion) {
                         for (int move_type = KNIGHT_PROMOTION; move_type <= QUEEN_PROMOTION; move_type++)
@@ -210,10 +211,12 @@ int Board::generate_moves(Move* moves) const {
             for (int j = 0; j < cnt; j++)
                 if (!(occupied[turn_color] & (1ULL << k_moves[j])))
                     moves[c++] = Move(i, k_moves[j], KING, get_piece(k_moves[j], !turn_color));
-            if (auto to = get_castle_move(turn_color, true))
-                moves[c++] = Move(i, *to, KING, NONE, QUEEN_CASTLING);
-            if (auto to = get_castle_move(turn_color, false))
-                moves[c++] = Move(i, *to, KING, NONE, KING_CASTLING);
+            // TODO: check condition to be tested
+            // TODO: king can still try to castle "through" check. Refactor is_in_check() into is_attacked() and use it to avoid bad castling attempts
+            if (auto to = get_castle_move(turn_color, true); to && !is_in_check(turn_color))
+                moves[c++] = Move(i, to.value(), KING, NONE, QUEEN_CASTLING);
+            if (auto to = get_castle_move(turn_color, false); to && !is_in_check(turn_color))
+                moves[c++] = Move(i, to.value(), KING, NONE, KING_CASTLING);
         } else {
             if (const Piece diagonal_piece = ((bitboard[turn_color][BISHOP] & pos) ? BISHOP : QUEEN); bitboard[turn_color][diagonal_piece] & pos) { // bishops or queens
                 uint8_t d_moves[14];
@@ -247,20 +250,30 @@ Piece Board::get_piece(const uint8_t pos, const Color color) const {
     return NONE;
 }
 
+// TODO: color param should be removed for clarity
 std::optional<uint8_t> Board::get_nearby_en_passant(const uint8_t i, const Color color) const {
-    uint8_t en_passant = extra_temp_data & 0b00001111;
-    en_passant = static_cast<uint8_t>(en_passant - (color ? 0 : 8));
-    if (i % 8 + 1 == en_passant) {
+    if (!is_any_en_passant)
+        return std::nullopt;
+    const uint8_t en_passant = special_data & EN_PASSANT_DATA_MASK;
+    if (const Color en_passant_color = en_passant >= 8; en_passant_color == color)
+        return std::nullopt;
+    // here, color is the color of the piece to be moved, so the opposite of the color for who the en passant was saved
+    // the saved en passant color refers to the color of the piece to be captured by en passant
+    // if black, get white en passant file; if white, get black en passant file
+    const uint8_t en_passant_file = static_cast<uint8_t>(en_passant - (color ? 0 : 8));
+    // to en passant, you also need to be on the correct rank. As a black pawn, that is rank 4; for white it's 5
+    const int8_t needed_rank = color ? 4 : 5;
+    if (file_int(i) + 1 == en_passant_file && rank(i) == needed_rank) {
         return offset_idx(i, 1, color ? -1 : 1);
     }
-    if (i % 8 - 1 == en_passant) {
+    if (file_int(i) - 1 == en_passant_file && rank(i) == needed_rank) {
         return offset_idx(i, -1, color ? -1 : 1);
     }
     return std::nullopt;
 }
 
 std::optional<uint8_t> Board::get_castle_move(const Color color, const bool queen_side) const {
-    if (!(extra_temp_data & 0b11110000 & ((1 << (queen_side ? 4 : 5)) << (color ? 2 : 0)))) { // verify castling rights
+    if (!(special_data & CASTLING_DATA_MASK & ((1 << (queen_side ? 4 : 5)) << (color ? 2 : 0)))) { // verify castling rights
         return std::nullopt;
     }
     const uint64_t occupied = get_occupied(color) | get_occupied(!color);
@@ -276,10 +289,10 @@ std::optional<uint8_t> Board::get_castle_move(const Color color, const bool quee
 bool Board::is_in_check(const Color color) const {
     // pawns
     const auto i = static_cast<uint8_t>(std::countr_zero(bitboard[color][KING]));
-    if (file(i) > 'a' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, -1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
+    if (file_char(i) > 'a' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, -1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
         return true;
     }
-    if (file(i) < 'h' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, 1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
+    if (file_char(i) < 'h' && (color ? (rank(i) > 1) : (rank(i) < 8)) && ((1ULL << offset_idx(i, 1, color ? -1 : 1)) & bitboard[!color][PAWN])) {
         return true;
     }
     // knights
@@ -329,23 +342,23 @@ void Board::make_move(const Move move) {
         bitboard[!turn_color][to_piece] &= ~(1ULL << to);
     }
     // save en passant
-    clear_en_passant_availability();
+    clear_all_en_passant_availability();
     if (from_piece == PAWN && rank(to)-rank(from) == (turn_color ? -2 : 2)) {
         add_en_passant_availability(to, turn_color);
     }
     // remove castling rights
     if (from_piece == KING) {
-        extra_temp_data &= (turn_color ? 0b00111111 : 0b11001111);
+        special_data &= (turn_color ? 0b00111111 : 0b11001111);
     }
     if (from_piece == ROOK) {
-        extra_temp_data &= (turn_color ? (from == 56 ? 0b10111111 : 0b01111111) : (from == 0 ? 0b11101111 : 0b11011111));
+        special_data &= (turn_color ? (from == 56 ? 0b10111111 : 0b01111111) : (from == 0 ? 0b11101111 : 0b11011111));
     }
     if (to_piece == ROOK) {
         if (to == (turn_color ? 0 : 56)) {
-            extra_temp_data &= (turn_color ? 0b11101111 : 0b10111111);
+            special_data &= (turn_color ? 0b11101111 : 0b10111111);
         }
         if (to == (turn_color ? 7 : 63)) {
-            extra_temp_data &= (turn_color ? 0b11011111 : 0b01111111);
+            special_data &= (turn_color ? 0b11011111 : 0b01111111);
         }
     }
     switch (move_type) {
@@ -392,12 +405,20 @@ void Board::make_move(const Move move) {
     turn_color = !turn_color;
 }
 
-void Board::clear_en_passant_availability() {
-    extra_temp_data &= 0b11110000;
+void Board::clear_all_en_passant_availability() {
+    is_any_en_passant = false;
 }
 
+// 0..7 -> white en passant; 8..15 -> black en passant
 void Board::add_en_passant_availability(const uint8_t i, const Color color) {
-    extra_temp_data |= static_cast<uint8_t>(i % 8 + (color ? 8 : 0));
+    is_any_en_passant = true;
+    const uint8_t en_passant_value = static_cast<uint8_t>(file_int(i) + (color ? 8 : 0));
+    if (en_passant_value > EN_PASSANT_DATA_MASK)
+        throw std::runtime_error("en passant value out of range");
+    // set en passant value to 0 so that en passant data is added onto 0
+    special_data &= CASTLING_DATA_MASK;
+    // add en passant data
+    special_data |= en_passant_value;
 }
 
 GameStatus Board::game_over() {

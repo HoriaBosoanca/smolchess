@@ -43,9 +43,9 @@ bool Move::operator==(const Move& other) const {
 
 std::string Move::to_string() const {
 	std::string s;
-	s += file(from());
+	s += file_char(from());
 	s += static_cast<char>('0'+rank(from()));
-	s += file(to());
+	s += file_char(to());
 	s += static_cast<char>('0'+rank(to()));
 	if (const MoveType mt = move_type(); mt == QUEEN_PROMOTION) {
 		s += 'q';
